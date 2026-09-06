@@ -45,3 +45,6 @@ skills-lock.json
 .mimosa/
 .zcode/
 dist/
+
+# 巡检脚本生成的报告（dev/crisis_baseline.py 落盘）
+dev/reports/
