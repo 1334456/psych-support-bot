@@ -68,10 +68,10 @@ def test_judge_score_reply_smoke() -> None:
             risk_level="low",
             expected_language="en",
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — judge 不可达时跳过整组用例，异常类型随网关而异
         pytest.skip(f"Judge model not reachable: {e}")
 
     assert len(result) == 5
-    for dim, data in result.items():
+    for _dim, data in result.items():
         assert "score" in data
         assert "reason" in data
