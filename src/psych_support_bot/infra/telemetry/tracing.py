@@ -22,9 +22,7 @@ def tracing_config() -> dict[str, str]:
     return {
         "host": settings.langfuse_host,
         "public_key": settings.langfuse_public_key,
-        "configured": str(
-            bool(settings.langfuse_public_key and settings.langfuse_secret_key)
-        ).lower(),
+        "configured": str(bool(settings.langfuse_public_key and settings.langfuse_secret_key)).lower(),
     }
 
 
@@ -67,9 +65,14 @@ def get_langfuse():
             public_key=settings.langfuse_public_key,
             secret_key=settings.langfuse_secret_key,
             host=settings.langfuse_host,
+            environment=settings.langfuse_environment,
             timeout=30,
         )
-        logger.info("Langfuse client initialised → %s", settings.langfuse_host)
+        logger.info(
+            "Langfuse client initialised → %s (env=%s)",
+            settings.langfuse_host,
+            settings.langfuse_environment,
+        )
     except Exception:
         logger.exception("Failed to initialise Langfuse client")
         _langfuse_client = None
@@ -83,6 +86,8 @@ def trace_span(
     input: object | None = None,
     metadata: dict[str, object] | None = None,
     as_type: str = "span",
+    session_id: str | None = None,
+    user_id: str | None = None,
 ):
     """Context manager that creates a Langfuse observation span.
 
@@ -100,14 +105,53 @@ def trace_span(
         input=input,
         metadata=metadata,
     )
+    started = perf_counter()
     try:
         obs = cm.__enter__()
+        _attach_trace_fields(obs, session_id=session_id, user_id=user_id)
         yield obs
     except Exception as exc:
         cm.__exit__(type(exc), exc, exc.__traceback__)
         raise
     else:
+        _record_span_elapsed(obs, metadata, (perf_counter() - started) * 1000)
         cm.__exit__(None, None, None)
+
+
+def _record_span_elapsed(obs, metadata: dict[str, object] | None, elapsed_ms: float) -> None:
+    """Best-effort elapsed_ms onto span metadata — per-node/per-call latency
+    is the basis for latency optimization analysis (see docs/technical)."""
+    if obs is None:
+        return
+    try:
+        merged = dict(metadata or {})
+        merged.setdefault("elapsed_ms", round(elapsed_ms, 2))
+        obs.update(metadata=merged)
+    except Exception:
+        logger.debug("Failed to record span elapsed_ms", exc_info=True)
+
+
+def _attach_trace_fields(obs, *, session_id: str | None, user_id: str | None) -> None:
+    """Best-effort mapping of session/user onto the parent trace so the UI
+    groups conversations correctly.
+
+    Langfuse v4 reads these from OTel span attributes (keys ``session.id``
+    and ``user.id``); ``update_trace`` no longer exists on spans there.
+    """
+    if obs is None or not (session_id or user_id):
+        return
+    otel_span = getattr(obs, "_otel_span", None)
+    is_recording = getattr(otel_span, "is_recording", None)
+    if otel_span is None or not (callable(is_recording) and is_recording()):
+        logger.debug("Langfuse span has no recording otel span; skipping trace fields")
+        return
+    try:
+        if session_id:
+            otel_span.set_attribute("session.id", session_id)
+        if user_id:
+            otel_span.set_attribute("user.id", user_id)
+    except Exception:
+        logger.debug("Failed to set Langfuse trace session/user attributes", exc_info=True)
 
 
 def update_span_output(obs, output: object) -> None:
@@ -118,6 +162,20 @@ def update_span_output(obs, output: object) -> None:
         obs.update(output=output)
     except Exception:
         logger.debug("Failed to update Langfuse span output", exc_info=True)
+
+
+def update_span_usage(obs, usage: dict[str, int]) -> None:
+    """Best-effort update of a generation span's token usage.
+
+    Keys follow Langfuse's usage_details convention (input / output / total /
+    input_cached) — input_cached powers the prefix-cache hit-rate analysis
+    (Phase 0 baseline for the prompt-layering refactor)."""
+    if obs is None:
+        return
+    try:
+        obs.update(usage_details=usage)
+    except Exception:
+        logger.debug("Failed to update Langfuse span usage", exc_info=True)
 
 
 def flush_langfuse() -> None:
