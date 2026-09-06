@@ -273,6 +273,7 @@ def _generate_consultation_opinion(
     question_strategy: str,
     challenge_allowed: bool,
     loop_hint: str,
+    conversation_intent: str = "new_request",
 ) -> dict[str, str]:
     system_prompt = build_consultation_agent_prompt(
         agent_label=agent["label"],
@@ -287,6 +288,7 @@ def _generate_consultation_opinion(
         question_strategy=question_strategy,
         challenge_allowed=challenge_allowed,
         loop_hint=loop_hint,
+        conversation_intent=conversation_intent,
     )
     fallback_note = (
         f"（{agent['label']}视角暂时不可用。）"
@@ -323,6 +325,7 @@ def generate_multidisciplinary_consultation(
     expected_language: str = "",
     no_question_mode: bool = False,
     emotional_state: str = "",
+    conversation_intent: str = "new_request",
 ) -> tuple[str, list[dict[str, str]]]:
     if not expected_language:
         expected_language = _expected_language(user_message)
@@ -351,6 +354,7 @@ def generate_multidisciplinary_consultation(
                     question_strategy=question_strategy,
                     challenge_allowed=challenge_allowed,
                     loop_hint=loop_hint,
+                    conversation_intent=conversation_intent,
                 ),
             )
             for agent in agents
@@ -377,6 +381,7 @@ def generate_multidisciplinary_consultation(
         expected_language=expected_language,
         no_question_mode=no_question_mode,
         emotional_state=emotional_state,
+        conversation_intent=conversation_intent,
     )
 
     # Synthesis failure degrades to the raw opinions instead of crashing the
@@ -419,6 +424,7 @@ def generate_clinically_bounded_reply(
     anti_repeat_note: str = "",
     emotional_state: str = "",
     history: list[dict[str, str]] | None = None,
+    conversation_intent: str = "new_request",
 ) -> str:
     if not expected_language:
         expected_language = _expected_language(user_message)
@@ -444,6 +450,7 @@ def generate_clinically_bounded_reply(
                 challenge_allowed=challenge_allowed,
                 loop_hint=loop_hint,
                 no_question_mode=no_question_mode,
+                conversation_intent=conversation_intent,
             ),
         ]
     )

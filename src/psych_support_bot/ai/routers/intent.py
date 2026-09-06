@@ -182,3 +182,43 @@ def detect_mode(text: str) -> ConversationMode:
     if any(_contains_keyword(normalized, compact, keyword) for keyword in HELP_KEYWORDS):
         return "support"
     return "support"
+
+
+CONTEXT_REFERENCE_MARKERS = (
+    "this", "that", "it", "still", "why", "continue", "again",
+    "继续", "刚才", "上一条", "还是", "为什么",
+)
+CONSTRAINT_MARKERS = (
+    "more formal", "shorter", "正式一点", "简短一点",
+    "不能编造", "面向客服", "语气", "要求",
+)
+TOPIC_SWITCH_MARKERS = (
+    "by the way", "another question", "separately", "顺便",
+    "另外", "换个问题", "订单",
+)
+
+
+def detect_conversation_intent(
+    text: str,
+    recent_history: list[dict[str, str]] | None = None,
+) -> str:
+    """Classify how the latest message relates to available conversation history."""
+    normalized, compact = _normalize_text(text)
+    has_history = bool(recent_history)
+
+    if any(
+        _contains_keyword(normalized, compact, marker)
+        for marker in TOPIC_SWITCH_MARKERS
+    ):
+        return "topic_switch"
+    if any(
+        _contains_keyword(normalized, compact, marker)
+        for marker in CONSTRAINT_MARKERS
+    ):
+        return "add_constraint" if has_history else "new_request"
+    if any(
+        _contains_keyword(normalized, compact, marker)
+        for marker in CONTEXT_REFERENCE_MARKERS
+    ):
+        return "follow_up" if has_history else "clarification_needed"
+    return "new_request"

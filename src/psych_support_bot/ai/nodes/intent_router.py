@@ -1,4 +1,8 @@
-from psych_support_bot.ai.routers.intent import REFUSAL_KEYWORDS, detect_mode
+from psych_support_bot.ai.routers.intent import (
+    REFUSAL_KEYWORDS,
+    detect_conversation_intent,
+    detect_mode,
+)
 from psych_support_bot.ai.schemas.state import GraphState
 from psych_support_bot.ai.utils.text_matching import _contains_keyword, _normalize_text
 from psych_support_bot.infra.telemetry.tracing import trace_span, update_span_output
@@ -9,8 +13,18 @@ def route_intent(state: GraphState) -> GraphState:
         "node.intent_router",
         input={"user_message": state["user_message"], "current_mode": state.get("mode", "")},
     ) as obs:
+        state["conversation_intent"] = detect_conversation_intent(
+            state["user_message"], state.get("recent_history", [])
+        )
         if state.get("mode") == "crisis":
-            update_span_output(obs, {"mode": "crisis", "skipped": True})
+            update_span_output(
+                obs,
+                {
+                    "mode": "crisis",
+                    "conversation_intent": state["conversation_intent"],
+                    "skipped": True,
+                },
+            )
             return state
 
         # B3.2: Before re-routing, check if user is refusing an exercise.
@@ -31,6 +45,7 @@ def route_intent(state: GraphState) -> GraphState:
             obs,
             {
                 "mode": state["mode"],
+                "conversation_intent": state["conversation_intent"],
                 "refusal_detected": has_refusal,
                 "refusal_history": state.get("refusal_history", []),
             },

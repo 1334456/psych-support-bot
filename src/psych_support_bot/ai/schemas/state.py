@@ -69,3 +69,5 @@ class GraphState(TypedDict):
     # API 格式追加在消息列表末尾——「换个方向吧」这类上下文依赖型消息
     # 此前因模型看不到逐字近史而被误读（Langfuse 2026-09-06 实证）。
     recent_history: list[dict[str, str]]
+    # Relationship between the latest message and the available conversation history.
+    conversation_intent: str

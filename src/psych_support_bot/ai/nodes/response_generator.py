@@ -138,6 +138,7 @@ def _generate_normal_reply(state: GraphState, risk_level: str, no_question_mode:
                 expected_language=state.get("expected_language", ""),
                 emotional_state=state.get("emotional_state", ""),
                 history=[dict(turn) for turn in (state.get("recent_history") or [])],
+                conversation_intent=state.get("conversation_intent", "new_request"),
             )
             state["consultation_opinions"] = []
         except Exception:
@@ -165,6 +166,7 @@ def _generate_normal_reply(state: GraphState, risk_level: str, no_question_mode:
                 expected_language=state.get("expected_language", ""),
                 no_question_mode=no_question_mode,
                 emotional_state=state.get("emotional_state", ""),
+                conversation_intent=state.get("conversation_intent", "new_request"),
             )
             state["consultation_opinions"] = opinions
         else:
@@ -188,6 +190,7 @@ def _generate_normal_reply(state: GraphState, risk_level: str, no_question_mode:
                 anti_repeat_note=_anti_repeat_note(),
                 emotional_state=state.get("emotional_state", ""),
                 history=[dict(turn) for turn in (state.get("recent_history") or [])],
+                conversation_intent=state.get("conversation_intent", "new_request"),
             )
             state["consultation_opinions"] = []
     except Exception:

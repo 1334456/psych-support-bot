@@ -272,6 +272,7 @@ def build_process_state_prompt(
     challenge_allowed: bool,
     loop_hint: str,
     no_question_mode: bool = False,
+    conversation_intent: str = "new_request",
 ) -> str:
     """过程框架的每轮状态部分：stage/strategy/challenge/loop 均为 per-turn 变量。"""
     if no_question_mode:
@@ -286,9 +287,20 @@ def build_process_state_prompt(
         if challenge_allowed
         else "Do not challenge the user directly in this turn; prioritize safety and rapport."
     )
+    continuity_action = {
+        "follow_up": "Answer the latest follow-up directly using the most relevant prior turn.",
+        "add_constraint": "Merge the latest requirement into the active task and apply it now.",
+        "topic_switch": "Handle the newly requested topic first and do not force the previous topic into the answer.",
+        "clarification_needed": "The reference is not grounded in available history. Ask which task or item the user means.",
+        "new_request": "Treat the latest message as a new request unless the history clearly links it to an active task.",
+    }.get(
+        conversation_intent,
+        "Use the latest message as the current request and clarify ambiguous references.",
+    )
     return (
         f"Current interview stage: {interview_stage}. Current question strategy: {question_strategy}. "
         f"Loop guidance: {loop_hint} "
+        f"Conversation continuity intent: {conversation_intent}. {continuity_action} "
         f"{challenge_rule}"
     )
 
@@ -323,6 +335,7 @@ def build_consultation_agent_prompt(
     question_strategy: str,
     challenge_allowed: bool,
     loop_hint: str,
+    conversation_intent: str = "new_request",
 ) -> str:
     """会诊 agent 视角 prompt（Phase 5 分层装配）。
 
@@ -344,6 +357,7 @@ def build_consultation_agent_prompt(
     per_turn = (
         f"Conversation mode: {mode}. Risk level: {risk_level}. "
         f"Interview stage: {interview_stage}. Question strategy: {question_strategy}. Challenge allowed: {challenge_allowed}. "
+        f"Conversation continuity intent: {conversation_intent}. "
         f"Process hint: {loop_hint} "
         f"Known memory summary: {memory_summary or 'No prior memory.'} "
         f"Relevant knowledge context: {knowledge_context or 'No additional knowledge context.'}"
@@ -373,6 +387,7 @@ def build_consultation_synthesis_prompt(
     expected_language: str = "",
     no_question_mode: bool = False,
     emotional_state: str = "",
+    conversation_intent: str = "new_request",
 ) -> str:
     if not expected_language and user_message:
         expected_language = "zh" if any("\u4e00" <= char <= "\u9fff" for char in user_message) else "en"
@@ -393,6 +408,7 @@ def build_consultation_synthesis_prompt(
             challenge_allowed=challenge_allowed,
             loop_hint=loop_hint,
             no_question_mode=no_question_mode,
+            conversation_intent=conversation_intent,
         ),
         build_mode_shape_prompt(mode, risk_level, no_question_mode=no_question_mode),
         build_memory_block_prompt(memory_summary),
