@@ -853,3 +853,61 @@ def retrieve_knowledge_entries(
         if len(selected) >= limit:
             break
     return selected
+
+
+# ---------------------------------------------------------------------------
+# 渲染层（P3-B 统一：检索与渲染同层，tools/knowledge_base 只留门面）
+# ---------------------------------------------------------------------------
+
+
+def render_entry(entry_id: str, title: str, summary: str, action_hint: str) -> str:
+    rendered = f"{entry_id}: {title}. {summary}"
+    if action_hint:
+        rendered += f" Action hint: {action_hint}"
+    return rendered
+
+
+def render_knowledge_sections(entries: list[KnowledgeEntry]) -> list[str]:
+    """把检索结果渲染为分区文本段（takeaways / psychoeducation / grounded）。
+
+    原 tools/knowledge_base._grouped_entries_text 迁此——渲染与检索同层，
+    门面只做组装、预算与埋点。
+    """
+    learning_entries = [entry for entry in entries if entry.source == "active_learning"]
+    # active_learning 已单独渲染进 Synthesized takeaways 时不再重复进
+    # Psychoeducation notes——同一 entry 双区渲染既冗余又挤占预算。
+    psychoeducation_sources = {"psychoeducation", "foundation"} | (set() if learning_entries else {"active_learning"})
+    psychoeducation_entries = [entry for entry in entries if entry.source in psychoeducation_sources]
+    grounded_entries = [
+        entry for entry in entries if entry.source not in {"active_learning", "psychoeducation", "foundation"}
+    ]
+    sections: list[str] = []
+    # 知识区语气指令：这些是给模型化用的背景，不是给用户播报的资料——
+    # "Grounded references" 式渲染头会诱发'根据资料说'的播报腔（机械感根因之一）。
+    usage_note = (
+        "Background for you to weave into your own empathic wording — never cite sources, "
+        "list references, or announce 'according to...' in the visible reply:"
+    )
+
+    if learning_entries:
+        rendered_learning = [
+            render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
+            for entry in learning_entries[:2]
+        ]
+        sections.append("Synthesized takeaways: " + " ".join(rendered_learning))
+
+    if psychoeducation_entries:
+        rendered_psychoeducation = [
+            render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
+            for entry in psychoeducation_entries[:3]
+        ]
+        sections.append("Psychoeducation notes: " + " ".join(rendered_psychoeducation))
+
+    if grounded_entries:
+        rendered_grounded = [
+            render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
+            for entry in grounded_entries[:5]
+        ]
+        sections.append(usage_note + " " + " ".join(rendered_grounded))
+
+    return sections
