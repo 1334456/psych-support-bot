@@ -15,13 +15,20 @@ _SEVERITY = {"low": 0, "elevated": 1, "high": 2, "critical": 3}
 
 
 def _merge_upgrade(rule: RiskResult, llm: RiskResult) -> RiskResult:
-    """单向升级阀门：取 max(规则, LLM)，LLM 永远不能把规则判定拉回。"""
+    """单向升级阀门：取 max(规则, LLM)，LLM 永远不能把规则判定拉回。
+
+    needs_crisis_mode 与风险等级的绑定在此收口：仅 high/critical 允许
+    危机模式。否则 LLM 返回 elevated+needs_crisis_mode=true 时会拼出
+    「危机模式开着、风险不高」的中间态（Langfuse 基线巡检 2026-09-06
+    实证：risk=elevated + mode=crisis 的轮次，回复拿到危机框架话术但
+    没有热线资源）。
+    """
     if _SEVERITY[llm.risk_level] <= _SEVERITY[rule.risk_level]:
         return rule
     return RiskResult(
         risk_level=llm.risk_level,
         risk_types=[*dict.fromkeys([*rule.risk_types, *llm.risk_types])],
-        needs_crisis_mode=rule.needs_crisis_mode or llm.needs_crisis_mode,
+        needs_crisis_mode=llm.risk_level in {"high", "critical"},
         reason=f"{llm.reason} (rule verdict kept in types: {rule.reason})",
     )
 

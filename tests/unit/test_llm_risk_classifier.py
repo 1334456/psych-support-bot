@@ -190,6 +190,37 @@ def test_llm_output_forces_crisis_flag_consistency() -> None:
     assert semantic.emotional_state == ""
 
 
+def test_llm_elevated_cannot_arm_crisis_mode() -> None:
+    """LLM 输出 elevated + needs_crisis_mode=true 时旗标被压回——否则拼出
+    risk=elevated + mode=crisis 的中间态（危机框架话术但无热线资源，
+    Langfuse 基线巡检 2026-09-06 实证）。需要危机干预就把等级抬到 high。"""
+    monkeypatched = '{"risk_level": "elevated", "needs_crisis_mode": true, "reason": "x"}'
+    import psych_support_bot.ai.safety.llm_classifier as m
+
+    original = m._invoke
+    m._invoke = lambda *a, **k: monkeypatched  # type: ignore[assignment]
+    try:
+        result, _ = m.classify_risk_llm("测试", "zh")
+    finally:
+        m._invoke = original  # type: ignore[assignment]
+    assert result.risk_level == "elevated"
+    assert result.needs_crisis_mode is False
+
+
+def test_merge_never_arms_crisis_below_high() -> None:
+    """合并阀门收口：升级合并结果的危机旗标只由等级决定。"""
+    rule = RiskResult(risk_level="low", risk_types=[], needs_crisis_mode=False, reason="rule")
+    llm = RiskResult(risk_level="elevated", risk_types=["distress"], needs_crisis_mode=True, reason="llm")
+    merged = _merge_upgrade(rule, llm)
+    assert merged.risk_level == "elevated"
+    assert merged.needs_crisis_mode is False
+
+    llm_high = RiskResult(risk_level="high", risk_types=["safety"], needs_crisis_mode=False, reason="llm")
+    merged_high = _merge_upgrade(rule, llm_high)
+    assert merged_high.risk_level == "high"
+    assert merged_high.needs_crisis_mode is True
+
+
 def test_llm_topics_closed_set_validation() -> None:
     """topics 闭集校验：枚举外的值丢弃，最多保留 3 个。"""
     monkeypatched = (

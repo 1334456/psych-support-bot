@@ -119,11 +119,12 @@ def classify_risk_llm(user_message: str, expected_language: str = "") -> tuple[R
     if level not in {"critical", "high", "elevated", "low"}:
         raise ValueError(f"LLM risk classifier returned unknown level: {level!r}")
 
-    needs_crisis = bool(parsed.get("needs_crisis_mode"))
-    # 输出与提示词契约自洽：needs_crisis_mode 必须与 high/critical 对齐，
-    # 不一致时以 safety 为准（宁可多用危机资源，不可漏）。
-    if level in {"high", "critical"}:
-        needs_crisis = True
+    # 输出与提示词契约自洽：needs_crisis_mode 当且仅当 high/critical
+    # （prompt 明文契约）。此前"elevated 但 LLM 声称要危机模式"会被保留，
+    # 拼出 risk=elevated + mode=crisis 的中间态（危机框架话术但无热线
+    # 资源，基线巡检 2026-09-06 实证）——LLM 若认为需要危机干预，正确的
+    # 输出是把等级抬到 high，而非降级保留危机旗标。
+    needs_crisis = level in {"high", "critical"}
 
     # topics 闭集校验：枚举外的值直接丢弃（不生成新主题，不放过幻觉）。
     # emotional_state 截断防异常长输出。
