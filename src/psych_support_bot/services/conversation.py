@@ -172,7 +172,6 @@ class ConversationService:
             reply=GeneratedReply(
                 text=reply_text,
                 style=mode,
-                includes_action_step=True,
             ),
             summary=summary,
             question_options=question_options or [],
@@ -690,7 +689,6 @@ class ConversationService:
             "generated_reply": GeneratedReply(
                 text="",
                 style="support",
-                includes_action_step=True,
             ),
             "session_summary": "",
             "topics": [],
@@ -772,7 +770,7 @@ class ConversationService:
                         needs_crisis_mode=False,
                         reason="Graph failure fallback.",
                     ),
-                    reply=GeneratedReply(text=reply_text, style="support", includes_action_step=True),
+                    reply=GeneratedReply(text=reply_text, style="support"),
                     summary="Graph invocation failed; static safety fallback served.",
                     debug={
                         "source": "graph_fallback",

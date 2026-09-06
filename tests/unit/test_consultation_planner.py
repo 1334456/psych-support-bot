@@ -42,7 +42,6 @@ def _build_state(
             "generated_reply": GeneratedReply(
                 text="",
                 style=mode,
-                includes_action_step=True,
             ),
             "session_summary": "",
             "topics": [],

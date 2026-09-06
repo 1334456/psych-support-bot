@@ -8,7 +8,6 @@ from psych_support_bot.domain.assessments.service import (
     parse_questionnaire_answer,
 )
 
-
 # --- Strict answer parsing ---
 
 

@@ -50,7 +50,7 @@ def _build_state(
                 needs_crisis_mode=risk_level in {"high", "critical"},
                 reason="test",
             ),
-            "generated_reply": GeneratedReply(text="", style="support", includes_action_step=True),
+            "generated_reply": GeneratedReply(text="", style="support"),
             "session_summary": "",
             "topics": [],
             "fallback_used": False,

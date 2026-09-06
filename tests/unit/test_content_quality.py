@@ -60,7 +60,6 @@ def _make_state(
         "generated_reply": GeneratedReply(
             text=text,
             style="support",
-            includes_action_step=False,
         ),
         "session_summary": "",
         "topics": [],
@@ -327,26 +326,6 @@ class TestContextAwareFallback:
         text_en = _fallback_text("I feel stressed")
         assert "我在这里陪你" in text_zh
         assert "I am here with you" in text_en
-
-    def test_review_crisis_sets_action_step(self) -> None:
-        """危机模式下 review_response 应该设置 includes_action_step。"""
-        state = _make_state(
-            "I am here with you. Let us focus on safety.",
-            risk_level="high",
-            needs_crisis_mode=True,
-        )
-        result = review_response(state)
-        assert result["generated_reply"].includes_action_step is True
-
-    def test_review_normal_keeps_action_step_false(self) -> None:
-        """非危机模式下 includes_action_step 不应该被强制设置。"""
-        state = _make_state(
-            "Reflection: I hear you.\nWorking hypothesis: This sounds like stress.\nNext question: What happened?",
-            risk_level="low",
-            needs_crisis_mode=False,
-        )
-        result = review_response(state)
-        assert result["generated_reply"].includes_action_step is False
 
 
 # ---------------------------------------------------------------------------

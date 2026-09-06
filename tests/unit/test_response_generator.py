@@ -34,7 +34,6 @@ def _build_state(*, mode: ConversationMode, user_message: str, risk_level: RiskL
             "generated_reply": GeneratedReply(
                 text="",
                 style=mode,
-                includes_action_step=True,
             ),
             "session_summary": "",
             "topics": [],

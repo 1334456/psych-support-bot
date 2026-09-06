@@ -598,9 +598,6 @@ def review_response(state: GraphState) -> GraphState:
 
         state["generated_reply"].text = text
 
-        if needs_crisis:
-            state["generated_reply"].includes_action_step = True
-
         update_span_output(
             obs,
             {

@@ -262,7 +262,6 @@ def generate_response(state: GraphState) -> GraphState:
         state["generated_reply"] = GeneratedReply(
             text=reply_text,
             style=state["mode"],
-            includes_action_step=True,
             # Crisis replies keep hotline resources in one intact bubble.
             messages=_split_reply_messages(reply_text) if risk_level in {"low", "elevated"} else [],
         )

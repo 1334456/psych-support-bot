@@ -27,7 +27,7 @@ def _build_state(user_message: str, **extra: object) -> GraphState:
             "knowledge_context": "",
             "mode": "support",
             "risk_result": RiskResult(risk_level="low", risk_types=[], needs_crisis_mode=False, reason=""),
-            "generated_reply": GeneratedReply(text="", style="support", includes_action_step=True),
+            "generated_reply": GeneratedReply(text="", style="support"),
             "session_summary": "",
             "topics": [],
             "fallback_used": False,

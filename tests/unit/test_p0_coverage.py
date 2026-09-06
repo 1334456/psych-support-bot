@@ -55,7 +55,6 @@ def _build_state(
             "generated_reply": GeneratedReply(
                 text="",
                 style=mode,
-                includes_action_step=True,
             ),
             "session_summary": "",
             "topics": [],
@@ -218,7 +217,6 @@ def _build_review_state(
             "generated_reply": GeneratedReply(
                 text=reply_text,
                 style="support",
-                includes_action_step=True,
             ),
             "session_summary": "",
             "topics": [],
