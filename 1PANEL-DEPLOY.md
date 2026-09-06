@@ -71,6 +71,15 @@ curl "http://127.0.0.1:9958/v1/checkins?user_id=demo&days=30"   # 打卡历史
 curl "http://127.0.0.1:9958/v1/exercises/records?user_id=demo"  # 练习历史
 ```
 
+「我」页数据管理接口（20260906 起）：
+
+```bash
+curl "http://127.0.0.1:9958/v1/me/summary?user_id=demo"   # 账号事实 + 近30天计数
+curl -D - -o me.json "http://127.0.0.1:9958/v1/me/export?user_id=demo"  # 全量导出
+# 清空记录 / 注销账号：POST /v1/me/confirm-intent 换取确认令牌后
+# DELETE /v1/me/records 或 /v1/me/account（两步式确认，详见前端「我」页交互）
+```
+
 ## 常量与数据
 
 | 项 | 值 |
