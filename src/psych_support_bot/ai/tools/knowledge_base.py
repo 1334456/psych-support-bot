@@ -1,83 +1,15 @@
+"""知识检索门面（P3-B 统一后）：组装、预算、埋点。
+
+检索与渲染在 ai/knowledge/index.py 同层；分场景实践指导语料在
+ai/knowledge/practice_guidance.py——本模块只做拼装。
+"""
+
 from psych_support_bot.ai.knowledge.index import (
     detect_topics,
+    render_knowledge_sections,
     retrieve_knowledge_entries,
 )
-
-KNOWLEDGE_SNIPPETS = {
-    "support": [
-        "Validate emotion before offering suggestions.",
-        "Use plain-language psychoeducation to explain common stress, anxiety, sleep, or mood reactions.",
-        "Offer reassurance and one manageable next step, not a treatment sequence.",
-    ],
-    "assessment": [
-        "Clarify duration, frequency, severity, and impact on daily functioning.",
-        "Use non-diagnostic language and simple explanation rather than medicalized framing.",
-        "Ask at most one or two focused follow-up questions.",
-    ],
-    "intervention": [
-        "Only offer a skill when the user clearly wants one.",
-        "Prefer light grounding, calming, or self-observation over therapy-heavy protocols.",
-        "Keep practice steps concrete, brief, and low pressure.",
-    ],
-    "planning": [
-        "Translate insight into a low-friction action for today.",
-        "Prefer actions that increase stability, rest, and self-kindness.",
-        "Keep plans realistic enough to complete under stress.",
-    ],
-    "crisis": [
-        "Use short, direct safety-oriented language.",
-        "Do not explore causes deeply during crisis routing.",
-        "Encourage real-world support and urgent care if danger is immediate.",
-    ],
-}
-
-
-def _render_entry(entry_id: str, title: str, summary: str, action_hint: str) -> str:
-    rendered = f"{entry_id}: {title}. {summary}"
-    if action_hint:
-        rendered += f" Action hint: {action_hint}"
-    return rendered
-
-
-def _grouped_entries_text(entries: list) -> list[str]:
-    learning_entries = [entry for entry in entries if entry.source == "active_learning"]
-    # active_learning 已单独渲染进 Synthesized takeaways 时不再重复进
-    # Psychoeducation notes——同一 entry 双区渲染既冗余又挤占预算。
-    psychoeducation_sources = {"psychoeducation", "foundation"} | (set() if learning_entries else {"active_learning"})
-    psychoeducation_entries = [entry for entry in entries if entry.source in psychoeducation_sources]
-    grounded_entries = [
-        entry for entry in entries if entry.source not in {"active_learning", "psychoeducation", "foundation"}
-    ]
-    sections: list[str] = []
-    # 知识区语气指令：这些是给模型化用的背景，不是给用户播报的资料——
-    # "Grounded references" 式渲染头会诱发'根据资料说'的播报腔（机械感根因之一）。
-    usage_note = (
-        "Background for you to weave into your own empathic wording — never cite sources, "
-        "list references, or announce 'according to...' in the visible reply:"
-    )
-
-    if learning_entries:
-        rendered_learning = [
-            _render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
-            for entry in learning_entries[:2]
-        ]
-        sections.append("Synthesized takeaways: " + " ".join(rendered_learning))
-
-    if psychoeducation_entries:
-        rendered_psychoeducation = [
-            _render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
-            for entry in psychoeducation_entries[:3]
-        ]
-        sections.append("Psychoeducation notes: " + " ".join(rendered_psychoeducation))
-
-    if grounded_entries:
-        rendered_grounded = [
-            _render_entry(entry.entry_id, entry.title, entry.summary, entry.action_hint)
-            for entry in grounded_entries[:5]
-        ]
-        sections.append(usage_note + " " + " ".join(rendered_grounded))
-
-    return sections
+from psych_support_bot.ai.knowledge.practice_guidance import KNOWLEDGE_SNIPPETS
 
 
 def get_knowledge_context(
@@ -97,7 +29,7 @@ def get_knowledge_context(
     if topics:
         sections.append(f"Detected topics: {', '.join(topics)}.")
     if entries:
-        sections.extend(_grouped_entries_text(entries))
+        sections.extend(render_knowledge_sections(entries))
     if not entries:
         # 商业化指标：无知识命中（prompt 走结构化兜底框架）的触发率是
         # "是否值得投语义检索"的决策依据，走 Langfuse 事件不落库。
@@ -107,6 +39,8 @@ def get_knowledge_context(
 
 # 知识区总量预算（字符）。命中条目多时截断尾部——检索已按相关性排序，
 # 截尾损失最小。防外部语料一次命中多条（单条可达数百字符）挤占回复预算。
+# 与 index._clip 语义不同：这是上下文级预算截断（保留原空白、省略号收尾），
+# entry 级裁剪（空白归一）仍在检索层内部。
 KNOWLEDGE_CONTEXT_BUDGET = 2400
 
 
