@@ -314,21 +314,30 @@ OVER_PATHOLOGIZATION_PATTERNS: list[str] = [
     r"这(是|属于|像是|看起来是)(精神病性|精神科|心理疾病)的(症状|障碍|表现|发作)",
 ]
 
-_CHALLENGE_REGEX = [re.compile(p, re.IGNORECASE) for p in CHALLENGE_PATTERNS]
+def _compile_patterns(patterns: list[str]) -> list[re.Pattern]:
+    return [re.compile(p, re.IGNORECASE) for p in patterns]
 
-_DIAGNOSIS_REGEX = [re.compile(p, re.IGNORECASE) for p in DIAGNOSIS_PATTERNS]
-_OVERREACH_REGEX = [re.compile(p, re.IGNORECASE) for p in OVERREACH_PATTERNS]
-_PATHOLOGICAL_ATTRIBUTION_REGEX = [re.compile(p, re.IGNORECASE) for p in PATHOLOGICAL_ATTRIBUTION_PATTERNS]
-_EXPERIENCE_DENIAL_REGEX = [re.compile(p, re.IGNORECASE) for p in EXPERIENCE_DENIAL_PATTERNS]
-_OVER_PATHOLOGIZATION_REGEX = [re.compile(p, re.IGNORECASE) for p in OVER_PATHOLOGIZATION_PATTERNS]
+
+# 规则表（P3 收敛）：六个违规家族共用同一"逐行清除 + 过渡句"逻辑，
+# 差异仅在正则组与日志标签——新增家族只需在此登记。
+_REDACTION_REGEX_GROUPS: dict[str, list[re.Pattern]] = {
+    "challenge": _compile_patterns(CHALLENGE_PATTERNS),
+    "diagnosis": _compile_patterns(DIAGNOSIS_PATTERNS),
+    "overreach": _compile_patterns(OVERREACH_PATTERNS),
+    "pathological_attribution": _compile_patterns(PATHOLOGICAL_ATTRIBUTION_PATTERNS),
+    "experience_denial": _compile_patterns(EXPERIENCE_DENIAL_PATTERNS),
+    "over_pathologization": _compile_patterns(OVER_PATHOLOGIZATION_PATTERNS),
+}
+
+_CHALLENGE_REGEX = _REDACTION_REGEX_GROUPS["challenge"]
 
 # All red-line regexes combined for unified sanitisation in _sanitize_text().
 _ALL_REDLINED_REGEX = (
-    _DIAGNOSIS_REGEX
-    + _OVERREACH_REGEX
-    + _PATHOLOGICAL_ATTRIBUTION_REGEX
-    + _EXPERIENCE_DENIAL_REGEX
-    + _OVER_PATHOLOGIZATION_REGEX
+    _REDACTION_REGEX_GROUPS["diagnosis"]
+    + _REDACTION_REGEX_GROUPS["overreach"]
+    + _REDACTION_REGEX_GROUPS["pathological_attribution"]
+    + _REDACTION_REGEX_GROUPS["experience_denial"]
+    + _REDACTION_REGEX_GROUPS["over_pathologization"]
 )
 
 # Transition phrases inserted at truncation points to maintain coherence.
@@ -362,21 +371,19 @@ def _get_transition_phrase(needs_crisis_mode: bool, expected_language: str) -> s
     return _TRANSITION_ZH if lang == "zh" else _TRANSITION_EN
 
 
-def _sanitize_text(
+def _remove_violating_lines(
     text: str,
+    patterns: list[re.Pattern],
     *,
+    log_label: str,
     needs_crisis_mode: bool = False,
     expected_language: str = "",
 ) -> tuple[str, bool]:
-    """Remove red-line violating sentences from the reply.
+    """逐行清除命中 patterns 的句子，在首个截断点插入过渡句保持连贯。
 
-    Checks against all red-line regex groups: diagnosis, overreach,
-    pathological attribution, experience denial, and over-pathologization.
-
-    Returns (sanitized_text, was_modified).
-    Instead of replacing the entire reply, we split into lines,
-    remove violating ones, and insert a transition phrase at the
-    first truncation point to maintain coherence.
+    Returns (sanitized_text, was_modified)。若全部内容被清除（或只剩
+    过渡句），返回 ("", True) 提示调用方走完整 fallback。六个违规家族
+    共用此实现（P3 收敛，原 _sanitize_text/_sanitize_challenge 同构复制）。
     """
     was_modified = False
 
@@ -392,18 +399,10 @@ def _sanitize_text(
             kept_lines.append(line)
             continue
 
-        is_violating = False
-        for pattern in _ALL_REDLINED_REGEX:
-            if pattern.search(line):
-                is_violating = True
-                logger.warning(
-                    "Safety reviewer: removing red-line violating sentence: %s",
-                    line_stripped[:100],
-                )
-                break
-
+        is_violating = any(pattern.search(line) for pattern in patterns)
         if is_violating:
             was_modified = True
+            logger.warning("Safety reviewer: removing %s sentence: %s", log_label, line_stripped[:100])
             # Insert a transition phrase once at the first truncation point
             # to avoid a jarring gap, then leave subsequent truncations blank.
             if not transition_inserted:
@@ -423,6 +422,26 @@ def _sanitize_text(
         return "", True
 
     return sanitized, was_modified
+
+
+def _sanitize_text(
+    text: str,
+    *,
+    needs_crisis_mode: bool = False,
+    expected_language: str = "",
+) -> tuple[str, bool]:
+    """Remove red-line violating sentences from the reply.
+
+    Checks against all red-line regex groups: diagnosis, overreach,
+    pathological attribution, experience denial, and over-pathologization.
+    """
+    return _remove_violating_lines(
+        text,
+        _ALL_REDLINED_REGEX,
+        log_label="red-line violating",
+        needs_crisis_mode=needs_crisis_mode,
+        expected_language=expected_language,
+    )
 
 
 def _fallback_text(
@@ -462,46 +481,16 @@ def _sanitize_challenge(
 ) -> tuple[str, bool]:
     """Remove challenge/confrontation sentences from the reply.
 
-    Returns (sanitized_text, was_modified).
     Removes sentences containing challenge patterns, inserts a transition
     phrase at the first truncation point, and keeps the rest.
     """
-    was_modified = False
-    lines = text.split("\n")
-    kept_lines: list[str] = []
-    transition_inserted = False
-
-    for line in lines:
-        line_stripped = line.strip()
-        if not line_stripped:
-            kept_lines.append(line)
-            continue
-
-        is_violating = False
-        for pattern in _CHALLENGE_REGEX:
-            if pattern.search(line):
-                is_violating = True
-                logger.warning(
-                    "Safety reviewer: removing challenge sentence (challenge_allowed=False): %s",
-                    line_stripped[:100],
-                )
-                break
-
-        if is_violating:
-            was_modified = True
-            if not transition_inserted:
-                transition = _get_transition_phrase(needs_crisis_mode, expected_language)
-                kept_lines.append(transition)
-                transition_inserted = True
-            else:
-                kept_lines.append("")
-        else:
-            kept_lines.append(line)
-
-    sanitized = "\n".join(kept_lines).strip()
-    if not sanitized or (transition_inserted and sanitized in _ALL_TRANSITION_PHRASES):
-        return "", True
-    return sanitized, was_modified
+    return _remove_violating_lines(
+        text,
+        _CHALLENGE_REGEX,
+        log_label="challenge (challenge_allowed=False)",
+        needs_crisis_mode=needs_crisis_mode,
+        expected_language=expected_language,
+    )
 
 
 def _detect_redline(text: str) -> bool:
