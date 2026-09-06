@@ -172,9 +172,7 @@ def test_budget_truncates(monkeypatch) -> None:
     with _fresh_session() as db:
         _add_records(db, user_id)
         db.commit()
-        rendered = AssessmentMemoryModule().render(
-            db, user_id, language="zh", char_budget=DEFAULT_MODULE_BUDGET
-        )
+        rendered = AssessmentMemoryModule().render(db, user_id, language="zh", char_budget=DEFAULT_MODULE_BUDGET)
         assert len(rendered) <= DEFAULT_MODULE_BUDGET
         clipped = AssessmentMemoryModule().render(db, user_id, language="zh", char_budget=30)
         assert clipped.endswith("…")
@@ -191,9 +189,7 @@ def test_module_failure_fails_open(monkeypatch) -> None:
         def _boom(self, session, user_id, *, language, char_budget):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(
-            "psych_support_bot.ai.memory_modules.AssessmentMemoryModule.render", _boom
-        )
+        monkeypatch.setattr("psych_support_bot.ai.memory_modules.AssessmentMemoryModule.render", _boom)
         rendered = render_record_layers(db, user_id, "zh")
     assert "评估记录" not in rendered
     assert "打卡趋势" in rendered

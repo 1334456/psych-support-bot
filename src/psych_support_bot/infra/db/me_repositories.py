@@ -142,15 +142,11 @@ def export_user_data(session: Session, user_id: str) -> dict:
                 "risk_reason": r.risk_reason,
                 "created_at": _iso(r.created_at),
             }
-            for r in session.query(RiskEvent)
-            .filter(RiskEvent.user_id == user_id)
-            .all()
+            for r in session.query(RiskEvent).filter(RiskEvent.user_id == user_id).all()
         ],
         "weekly_reports": [
             {"summary": r.summary, "created_at": _iso(r.created_at)}
-            for r in session.query(WeeklyReportRecord)
-            .filter(WeeklyReportRecord.user_id == user_id)
-            .all()
+            for r in session.query(WeeklyReportRecord).filter(WeeklyReportRecord.user_id == user_id).all()
         ],
         "plan_enrollments": [
             {
@@ -159,9 +155,7 @@ def export_user_data(session: Session, user_id: str) -> dict:
                 "current_day": r.current_day,
                 "enrolled_at": _iso(r.enrolled_at),
             }
-            for r in session.query(PlanEnrollment)
-            .filter(PlanEnrollment.user_id == user_id)
-            .all()
+            for r in session.query(PlanEnrollment).filter(PlanEnrollment.user_id == user_id).all()
         ],
         "exported_at": datetime.now(UTC).isoformat(),
     }
@@ -243,16 +237,11 @@ def delete_user_account(session: Session, user_id: str) -> dict[str, int]:
 
     # messages 按 sessions.user_id 间接归属：先收集会话 id，删消息再删会话。
     session_ids = [
-        row[0]
-        for row in session.query(ConversationSession.id)
-        .filter(ConversationSession.user_id == user_id)
-        .all()
+        row[0] for row in session.query(ConversationSession.id).filter(ConversationSession.user_id == user_id).all()
     ]
     if session_ids:
         counts["messages"] = int(
-            session.query(Message)
-            .filter(Message.session_id.in_(session_ids))
-            .delete(synchronize_session=False)
+            session.query(Message).filter(Message.session_id.in_(session_ids)).delete(synchronize_session=False)
         )
     else:
         counts["messages"] = 0
@@ -268,24 +257,16 @@ def delete_user_account(session: Session, user_id: str) -> dict[str, int]:
         .delete(synchronize_session=False)
     )
     counts["assessments"] = int(
-        session.query(AssessmentRecord)
-        .filter(AssessmentRecord.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(AssessmentRecord).filter(AssessmentRecord.user_id == user_id).delete(synchronize_session=False)
     )
     counts["exercise_records"] = int(
-        session.query(ExerciseRecord)
-        .filter(ExerciseRecord.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(ExerciseRecord).filter(ExerciseRecord.user_id == user_id).delete(synchronize_session=False)
     )
     counts["checkins"] = int(
-        session.query(CheckinRecord)
-        .filter(CheckinRecord.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(CheckinRecord).filter(CheckinRecord.user_id == user_id).delete(synchronize_session=False)
     )
     counts["risk_events"] = int(
-        session.query(RiskEvent)
-        .filter(RiskEvent.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(RiskEvent).filter(RiskEvent.user_id == user_id).delete(synchronize_session=False)
     )
     counts["weekly_reports"] = int(
         session.query(WeeklyReportRecord)
@@ -293,28 +274,16 @@ def delete_user_account(session: Session, user_id: str) -> dict[str, int]:
         .delete(synchronize_session=False)
     )
     counts["plan_enrollments"] = int(
-        session.query(PlanEnrollment)
-        .filter(PlanEnrollment.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(PlanEnrollment).filter(PlanEnrollment.user_id == user_id).delete(synchronize_session=False)
     )
     counts["usage_events"] = int(
-        session.query(UsageEvent)
-        .filter(UsageEvent.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(UsageEvent).filter(UsageEvent.user_id == user_id).delete(synchronize_session=False)
     )
     counts["user_profiles"] = int(
-        session.query(UserProfile)
-        .filter(UserProfile.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
     )
     counts["user_credentials"] = int(
-        session.query(UserCredential)
-        .filter(UserCredential.user_id == user_id)
-        .delete(synchronize_session=False)
+        session.query(UserCredential).filter(UserCredential.user_id == user_id).delete(synchronize_session=False)
     )
-    counts["users"] = int(
-        session.query(User)
-        .filter(User.id == user_id)
-        .delete(synchronize_session=False)
-    )
+    counts["users"] = int(session.query(User).filter(User.id == user_id).delete(synchronize_session=False))
     return counts

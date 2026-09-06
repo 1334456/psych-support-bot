@@ -93,7 +93,9 @@ def test_ordinary_words_not_flagged() -> None:
 
 
 def test_internal_consultation_lines_removed() -> None:
-    text = "观察： 用户完成了练习，投入度有限。\n形成： 可能存在回避。\n下一步： 询问练习的具体内容。\n你愿意多说一点吗？"
+    text = (
+        "观察： 用户完成了练习，投入度有限。\n形成： 可能存在回避。\n下一步： 询问练习的具体内容。\n你愿意多说一点吗？"
+    )
     cleaned, modified = _sanitize_internal_labels(text)
     assert modified is True
     assert "观察" not in cleaned and "形成" not in cleaned and "下一步" not in cleaned
@@ -136,9 +138,7 @@ def test_review_response_replaces_vendor_leak_with_identity_fallback() -> None:
 
 
 def test_review_response_strips_internal_labels_keeps_content() -> None:
-    state = _build_state(
-        reply_text="观察： 用户主动报告完成了练习。\n这是一个很好的起点，我看到了你的努力。"
-    )
+    state = _build_state(reply_text="观察： 用户主动报告完成了练习。\n这是一个很好的起点，我看到了你的努力。")
     result = review_response(state)
     final_text = result["generated_reply"].text
     assert "观察" not in final_text

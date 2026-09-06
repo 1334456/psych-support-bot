@@ -80,7 +80,11 @@ def get_progress(plan_id: str, user_id: str, session: Session) -> dict[str, obje
         }
 
     completed_days = json.loads(enrollment.completed_days_json or "[]")
-    today_step = get_today_step(plan_id, enrollment.current_day) if enrollment.current_day <= PLAN_TEMPLATES[plan_id]["days"] else None
+    today_step = (
+        get_today_step(plan_id, enrollment.current_day)
+        if enrollment.current_day <= PLAN_TEMPLATES[plan_id]["days"]
+        else None
+    )
 
     return {
         "plan_id": plan_id,

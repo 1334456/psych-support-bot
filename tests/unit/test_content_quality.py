@@ -391,10 +391,7 @@ class TestCrisisStructureExemption:
         from psych_support_bot.evals.runner import _check_structure
 
         # 无标签的 1~3 条短消息 → 合法
-        assert (
-            _check_structure("I understand you are feeling stressed today.", "en", mode="support")
-            is True
-        )
+        assert _check_structure("I understand you are feeling stressed today.", "en", mode="support") is True
         labeled_zh = "回应：你今天很累。\n\n工作性假设：也许压力源在工作。\n\n下一问：最近睡得如何？"
         assert _check_structure(labeled_zh, "zh", mode="support") is False
 

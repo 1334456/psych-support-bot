@@ -4,9 +4,7 @@ from psych_support_bot.ai.interview import determine_interview_process
 
 
 def _call(msg: str, turn_count: int):
-    return determine_interview_process(
-        user_message=msg, mode="support", risk_level="low", turn_count=turn_count
-    )
+    return determine_interview_process(user_message=msg, mode="support", risk_level="low", turn_count=turn_count)
 
 
 def test_early_turns_stay_engagement() -> None:
@@ -35,7 +33,5 @@ def test_keyword_cascade_still_beats_depth_floor() -> None:
 
 
 def test_crisis_overrides_depth_floor() -> None:
-    r = determine_interview_process(
-        user_message="嗯", mode="crisis", risk_level="high", turn_count=9
-    )
+    r = determine_interview_process(user_message="嗯", mode="crisis", risk_level="high", turn_count=9)
     assert r["interview_stage"] == "safety_stabilization"

@@ -84,11 +84,7 @@ def get_valid_hotlines(language: str = "zh", *, top_n: int = 3) -> list[dict]:
     The result is sorted by priority and language.
     """
     lang = "zh" if language in {"zh", "cn"} else "en"
-    filtered = [
-        h
-        for h in _HOTLINES
-        if h["language"] == lang and h["active"]
-    ]
+    filtered = [h for h in _HOTLINES if h["language"] == lang and h["active"]]
     # Sort by priority, then by name for determinism.
     filtered.sort(key=lambda x: (x["priority"], x["name"]))
     return [

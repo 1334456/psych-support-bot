@@ -27,9 +27,12 @@ def route_intent(state: GraphState) -> GraphState:
             state["refusal_history"] = refusal_history
 
         state["mode"] = detect_mode(state["user_message"])
-        update_span_output(obs, {
-            "mode": state["mode"],
-            "refusal_detected": has_refusal,
-            "refusal_history": state.get("refusal_history", []),
-        })
+        update_span_output(
+            obs,
+            {
+                "mode": state["mode"],
+                "refusal_detected": has_refusal,
+                "refusal_history": state.get("refusal_history", []),
+            },
+        )
     return state

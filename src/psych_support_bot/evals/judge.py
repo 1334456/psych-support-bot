@@ -122,11 +122,7 @@ def score_reply(
     model = _build_judge_model()
     messages = [
         SystemMessage(content=JUDGE_SYSTEM_PROMPT),
-        HumanMessage(
-            content=_build_judge_user_message(
-                user_message, ai_reply, mode, risk_level, expected_language
-            )
-        ),
+        HumanMessage(content=_build_judge_user_message(user_message, ai_reply, mode, risk_level, expected_language)),
     ]
 
     with trace_span(
@@ -167,10 +163,7 @@ def score_reply(
 
 def _fallback_scores(raw_output: str) -> dict[str, dict[str, object]]:
     """Return placeholder scores when JSON parsing fails."""
-    return {
-        dim: {"score": -1, "reason": f"Parse error. Raw: {raw_output[:100]}"}
-        for dim in JUDGE_DIMENSIONS
-    }
+    return {dim: {"score": -1, "reason": f"Parse error. Raw: {raw_output[:100]}"} for dim in JUDGE_DIMENSIONS}
 
 
 def run_judge_eval(eval_results: list[dict] | None = None) -> list[dict]:

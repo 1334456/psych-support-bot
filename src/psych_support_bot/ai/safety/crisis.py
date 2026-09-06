@@ -34,12 +34,8 @@ def _resource_description(is_zh: bool, top_n: int = 3) -> str:
     if not items:
         return ""
     if is_zh:
-        return "。".join(
-            f"{item['name']}（{item['description']}，电话：{item['phone']}）" for item in items
-        )
-    rendered = [
-        f"{item['name']} ({item['description']}, phone: {item['phone']})" for item in items
-    ]
+        return "。".join(f"{item['name']}（{item['description']}，电话：{item['phone']}）" for item in items)
+    rendered = [f"{item['name']} ({item['description']}, phone: {item['phone']})" for item in items]
     if len(rendered) == 1:
         return rendered[0]
     return ", ".join(rendered[:-1]) + ", and " + rendered[-1]
@@ -86,10 +82,7 @@ def build_crisis_reply(
         )
     # High risk: emphasize connection + resources, then confirmation.
     if is_zh:
-        return (
-            "我很担心你的安全。请联系一位信任的亲友陪伴你，拨打120或前往最近的医院，"
-            f"{zh_confirm} {zh_resources}"
-        )
+        return f"我很担心你的安全。请联系一位信任的亲友陪伴你，拨打120或前往最近的医院，{zh_confirm} {zh_resources}"
     return (
         "I am concerned about your safety. Please contact a trusted person, "
         f"go to the nearest hospital, or call emergency services. {en_confirm} {en_resources}"

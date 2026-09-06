@@ -88,6 +88,7 @@ def test_all_phones_verified_from_library() -> None:
         for raw in phone_re.findall(reply):
             assert raw in allowed, f"unverified phone number in reply: {raw}"
 
+
 def test_critical_includes_emergency_services() -> None:
     """Critical must explicitly mention 120/emergency services."""
     zh = build_crisis_reply(

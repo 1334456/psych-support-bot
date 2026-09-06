@@ -151,9 +151,7 @@ class CheckinMemoryModule:
             text = f"{en_label if is_en else zh_label} {arrows}"
             streak = _streak_from_end(values, qualifies)
             if streak >= self.STREAK_WINDOW:
-                text += (
-                    f"（连续{streak}天{zh_word}，需关注）" if not is_en else f" ({en_word} {streak}d in a row)"
-                )
+                text += f"（连续{streak}天{zh_word}，需关注）" if not is_en else f" ({en_word} {streak}d in a row)"
             parts.append(text)
         joiner = "，" if not is_en else ", "
         label = "打卡趋势：" if not is_en else "Check-in trend: "

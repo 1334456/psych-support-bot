@@ -75,18 +75,13 @@ def test_clear_records_requires_valid_token() -> None:
     # 无令牌
     assert client.delete(f"/v1/me/records?user_id={USER}").status_code in {403, 422}
     # 错令牌
-    assert (
-        client.delete(f"/v1/me/records?user_id={USER}&confirm_token=badtoken_123").status_code
-        == 403
-    )
+    assert client.delete(f"/v1/me/records?user_id={USER}&confirm_token=badtoken_123").status_code == 403
     # 跨操作令牌（delete_account 的令牌不能用于 clear_records）
     other = client.post(
         "/v1/me/confirm-intent",
         json={"user_id": USER, "action": "delete_account"},
     ).json()["confirm_token"]
-    assert (
-        client.delete(f"/v1/me/records?user_id={USER}&confirm_token={other}").status_code == 403
-    )
+    assert client.delete(f"/v1/me/records?user_id={USER}&confirm_token={other}").status_code == 403
 
 
 def test_clear_records_two_step_flow() -> None:
@@ -120,9 +115,7 @@ def test_expired_confirm_token_rejected(monkeypatch) -> None:
         json={"user_id": USER, "action": "clear_records"},
     ).json()["confirm_token"]
     monkeypatch.setattr(me_routes, "CONFIRM_TOKEN_TTL_SECONDS", 600)
-    assert (
-        client.delete(f"/v1/me/records?user_id={USER}&confirm_token={token}").status_code == 403
-    )
+    assert client.delete(f"/v1/me/records?user_id={USER}&confirm_token={token}").status_code == 403
 
 
 def test_delete_account_cascades_all_tables() -> None:

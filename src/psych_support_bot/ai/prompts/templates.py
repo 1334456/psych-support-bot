@@ -36,7 +36,6 @@ def build_language_lock_prompt(expected_language: str = "", *, user_message: str
     )
 
 
-
 def build_visible_reply_labels(expected_language: str) -> tuple[str, str, str]:
     if expected_language == "zh":
         return ("回应", "工作性假设", "下一问")
@@ -157,8 +156,6 @@ def build_boundary_state_prompt(risk_level: str, emotional_state: str = "") -> s
     return f"Current assessed risk level: {risk_level}.{elevated_note}{emotional_note}"
 
 
-
-
 def build_memory_block_prompt(memory_summary: str) -> str:
     """用户记忆区（缓存断点之后）：标注为参考数据而非指令。
 
@@ -186,10 +183,7 @@ def build_knowledge_block_prompt(knowledge_context: str) -> str:
         "4) Safety check: if distress indicators are present, gently assess risk. "
         "Keep the response focused, empathetic, and grounded in evidence-based principles."
     )
-    return (
-        "[Practice Context — background for you to weave in, never cite]\n"
-        f"{context}"
-    )
+    return f"[Practice Context — background for you to weave in, never cite]\n{context}"
 
 
 def build_output_contract_prompt(expected_language: str) -> str:
@@ -244,7 +238,6 @@ def build_mode_shape_prompt(mode: str, risk_level: str, *, no_question_mode: boo
     )
 
 
-
 def build_process_base_prompt() -> str:
     """临床过程框架静态部分：进缓存前缀区。
 
@@ -288,7 +281,6 @@ def build_process_state_prompt(
     )
 
 
-
 def build_static_prefix(expected_language: str) -> str:
     """全局静态前缀（仅随语言分池）：主回复、会诊 agent、会诊综合三条
     路径共用同一前缀，共享网关前缀缓存的命中池（Phase 5）。部署期才变，
@@ -303,7 +295,6 @@ def build_static_prefix(expected_language: str) -> str:
             build_language_lock_prompt(expected_language),
         ]
     )
-
 
 
 def build_consultation_agent_prompt(

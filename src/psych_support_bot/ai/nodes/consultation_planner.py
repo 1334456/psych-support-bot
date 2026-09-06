@@ -237,12 +237,15 @@ def plan_consultation(state: GraphState) -> GraphState:
 
         state["loop_hint"] = loop_hint
 
-        update_span_output(obs, {
-            "consultation_required": required,
-            "consultation_agents": state["consultation_agents"],
-            "interview_stage": state["interview_stage"],
-            "question_strategy": state["question_strategy"],
-            "challenge_allowed": state["challenge_allowed"],
-            "contradiction_detected": bool(contradiction_hint),
-        })
+        update_span_output(
+            obs,
+            {
+                "consultation_required": required,
+                "consultation_agents": state["consultation_agents"],
+                "interview_stage": state["interview_stage"],
+                "question_strategy": state["question_strategy"],
+                "challenge_allowed": state["challenge_allowed"],
+                "contradiction_detected": bool(contradiction_hint),
+            },
+        )
     return state

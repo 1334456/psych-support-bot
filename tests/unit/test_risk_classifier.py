@@ -27,6 +27,8 @@ def _no_llm_semantic(monkeypatch):
         raise RuntimeError("LLM unavailable in risk classifier tests")
 
     monkeypatch.setattr(rc_mod, "classify_risk_llm", _raise)
+
+
 from psych_support_bot.ai.schemas.state import GraphState
 
 

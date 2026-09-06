@@ -82,9 +82,7 @@ def test_retries_exhausted_serves_fallback(monkeypatch, _no_sleep, _stub_setting
     assert _no_sleep == [0.5, 1.0]
 
 
-def test_retries_exhausted_without_fallback_raises_llm_unavailable(
-    monkeypatch, _no_sleep, _stub_settings
-) -> None:
+def test_retries_exhausted_without_fallback_raises_llm_unavailable(monkeypatch, _no_sleep, _stub_settings) -> None:
     _stub_model(monkeypatch, [_FakeAPIError(500), _FakeAPIError(500), _FakeAPIError(500)])
     with pytest.raises(LLMUnavailableError):
         _invoke("sys", "user", "zh")

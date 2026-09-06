@@ -113,9 +113,7 @@ def _questionnaire_reply(
     def deterministic_fallback() -> str:
         if phase == "completed":
             return completion_context or (
-                f"{guide.title}已完成，感谢你的作答。"
-                if zh
-                else f"{guide.title} is complete. Thank you for answering."
+                f"{guide.title}已完成，感谢你的作答。" if zh else f"{guide.title} is complete. Thank you for answering."
             )
         return (
             build_progress_prefix(guide.title, current_index, total_items, expected_language)
@@ -208,7 +206,15 @@ class QuestionnaireFlow:
             if skip_exit:
                 return self._exit_on_skip(session, active_session, guide, assessment_type, expected_language)
             return self._handle_emotional_or_invalid(
-                payload, session, active_session, guide, assessment_type, answers, view, prior_messages, expected_language
+                payload,
+                session,
+                active_session,
+                guide,
+                assessment_type,
+                answers,
+                view,
+                prior_messages,
+                expected_language,
             )
 
         return self._handle_valid_answer(
@@ -342,9 +348,7 @@ class QuestionnaireFlow:
             current_index=view.current_index + 1,
             total_items=view.total_items,
             next_question=(view.next_item.text if view.next_item is not None else None),
-            options=[
-                (option.value, option.label) for option in (view.next_item.options if view.next_item else [])
-            ],
+            options=[(option.value, option.label) for option in (view.next_item.options if view.next_item else [])],
             answers_so_far=answers,
             error_hint=error_hint,
         )
@@ -449,8 +453,7 @@ class QuestionnaireFlow:
                 mode="assessment",
                 reply_text=reply_text,
                 summary=(
-                    f"Questionnaire {assessment_type} progress "
-                    f"{updated_view.current_index}/{updated_view.total_items}."
+                    f"Questionnaire {assessment_type} progress {updated_view.current_index}/{updated_view.total_items}."
                 ),
                 question_options=_options_payload(updated_view.next_item.options),
                 debug={
@@ -519,9 +522,7 @@ class QuestionnaireFlow:
                 answers_so_far=updated_answers,
                 completion_context=completion_context,
             ),
-            summary=(
-                f"Completed questionnaire {assessment_type} with score {result.score} ({result.severity_band})."
-            ),
+            summary=(f"Completed questionnaire {assessment_type} with score {result.score} ({result.severity_band})."),
             risk_level=risk_level,
             risk_reason=risk_reason,
             debug={

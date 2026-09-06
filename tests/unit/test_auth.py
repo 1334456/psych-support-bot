@@ -181,9 +181,9 @@ def test_auth_enabled_binds_user_id_to_token_sub(monkeypatch) -> None:
     get_settings.cache_clear()
     try:
         username = f"bt{int(time.time())}"
-        token = client.post(
-            "/v1/auth/register", json={"username": username, "password": _rand_password()}
-        ).json()["access_token"]
+        token = client.post("/v1/auth/register", json={"username": username, "password": _rand_password()}).json()[
+            "access_token"
+        ]
         headers = {"Authorization": f"Bearer {token}"}
         # 本人数据：放行（空历史 200）
         assert client.get("/v1/checkins", params={"user_id": username}, headers=headers).status_code == 200

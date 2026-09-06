@@ -67,6 +67,7 @@ def _capture_user_context(**overrides) -> str:
 # 静态前缀区：跨轮次/跨状态逐字稳定
 # ---------------------------------------------------------------------------
 
+
 def test_static_prefix_identical_across_risk_levels() -> None:
     """risk 变化只影响静态区之后的内容，静态前缀逐字不变。"""
     low = _capture_system_prompt(risk_level="low")
@@ -143,6 +144,7 @@ def test_static_prefix_language_pools() -> None:
 # 分层顺序与区块语义
 # ---------------------------------------------------------------------------
 
+
 def test_layer_order_static_before_state_and_data_in_human_turn() -> None:
     """Phase 2 收尾：system = 静态+状态；memory/knowledge 数据区进 HumanMessage 前缀。"""
     sp = _capture_system_prompt()
@@ -191,6 +193,7 @@ def test_knowledge_block_fallback_framework_preserved() -> None:
 # ---------------------------------------------------------------------------
 # Phase 5：会诊路径共享静态前缀
 # ---------------------------------------------------------------------------
+
 
 def test_consultation_agent_prompt_shares_static_prefix() -> None:
     """agent prompt 前缀与主回复路径逐字一致（共享缓存池），每轮状态在尾部。"""

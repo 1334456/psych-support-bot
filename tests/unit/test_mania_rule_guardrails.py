@@ -16,9 +16,7 @@ def test_overtime_colloquial_not_mania() -> None:
         "事情太多，感觉忙得停不下来",
     ):
         risk = classify_message_risk(message)
-        assert risk.risk_level != "high" or "mania" not in risk.risk_types, (
-            f"{message!r} 误判为 mania: {risk}"
-        )
+        assert risk.risk_level != "high" or "mania" not in risk.risk_types, f"{message!r} 误判为 mania: {risk}"
         assert not risk.needs_crisis_mode, f"{message!r} 误入危机模式: {risk}"
 
 

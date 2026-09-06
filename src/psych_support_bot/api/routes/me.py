@@ -120,9 +120,7 @@ def export_me_data(
     today = data["exported_at"][:10].replace("-", "")
     return JSONResponse(
         content=data,
-        headers={
-            "Content-Disposition": f'attachment; filename="psych-support-export-{today}.json"'
-        },
+        headers={"Content-Disposition": f'attachment; filename="psych-support-export-{today}.json"'},
     )
 
 

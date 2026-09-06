@@ -242,7 +242,9 @@ def parse_questionnaire_answer(message: str, assessment_type: AssessmentType) ->
     # a real emotional disclosure silently swallowed as data (Langfuse 巡检
     # 2026-09-04). Unstructured prose must return None so downstream guards
     # (disengage / emotional-disclosure) can handle it.
-    structured_answer = re.match(r'^["\'“”‘’\s]*(\d+)\s*(?:分|\.|。|，|,|项|个|号)?["\'“”‘’\s.,。、！？!?：:~～]*$', cleaned)
+    structured_answer = re.match(
+        r'^["\'“”‘’\s]*(\d+)\s*(?:分|\.|。|，|,|项|个|号)?["\'“”‘’\s.,。、！？!?：:~～]*$', cleaned
+    )
     if not structured_answer:
         structured_answer = re.match(
             r'^["\'“”‘’\s]*(?:我)?(?:选择|选|答案是|答案|第)\s*(\d+)\s*(?:项|个|号|题)?["\'“”‘’\s.,。、！？!?：:~～]*$',
@@ -425,7 +427,9 @@ def format_trend_line(language: str, *, prev_score: int, days_since: int, new_sc
         if new_score < prev_score:
             verdict = f"比上次低了 {prev_score - new_score} 分，整体有所缓解。"
         elif new_score > prev_score:
-            verdict = f"比上次高了 {new_score - prev_score} 分。分数波动不一定代表变糟，我们可以一起看看是哪些条目在变化。"
+            verdict = (
+                f"比上次高了 {new_score - prev_score} 分。分数波动不一定代表变糟，我们可以一起看看是哪些条目在变化。"
+            )
         else:
             verdict = "和上次基本持平。"
         return f"对比一下：你上次的得分是 {prev_score}{when}，这次是 {new_score} 分，{verdict}"

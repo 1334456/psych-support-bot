@@ -112,9 +112,7 @@ VENDOR_NAME_SUBSTRINGS: tuple[str, ...] = (
 )
 
 IDENTITY_FALLBACK_ZH = "我是这个应用里的 AI 心理支持伙伴，一个愿意听你说话的 AI，不是真人。有什么想聊的，我都在。"
-IDENTITY_FALLBACK_EN = (
-    "I'm this app's AI support companion — an AI here to listen, not a human. What's on your mind?"
-)
+IDENTITY_FALLBACK_EN = "I'm this app's AI support companion — an AI here to listen, not a human. What's on your mind?"
 
 
 def _detect_vendor_name(text: str) -> bool:
@@ -177,6 +175,7 @@ def _sanitize_internal_labels(text: str) -> tuple[str, bool]:
         kept_lines.append(new_line)
     cleaned = "\n".join(kept_lines).strip()
     return (cleaned, was_modified) if was_modified else (text, False)
+
 
 # Diagnosis language patterns: LLM outputs that imply or state a diagnosis
 DIAGNOSIS_PATTERNS: list[str] = [
@@ -313,6 +312,7 @@ OVER_PATHOLOGIZATION_PATTERNS: list[str] = [
     r"你(正在|在)(经历|产生|出现)(幻觉|妄想|精神病性症状|解离症状|精神崩溃)",
     r"这(是|属于|像是|看起来是)(精神病性|精神科|心理疾病)的(症状|障碍|表现|发作)",
 ]
+
 
 def _compile_patterns(patterns: list[str]) -> list[re.Pattern]:
     return [re.compile(p, re.IGNORECASE) for p in patterns]
@@ -549,10 +549,14 @@ def review_response(state: GraphState) -> GraphState:
                     risk_result=risk_result,
                 )
         elif had_labels:
-            text = labeled_text if labeled_text else _fallback_text(
-                state["user_message"],
-                expected_lang,
-                risk_result=risk_result,
+            text = (
+                labeled_text
+                if labeled_text
+                else _fallback_text(
+                    state["user_message"],
+                    expected_lang,
+                    risk_result=risk_result,
+                )
             )
         elif has_redline:
             # Red-line violations: truncate violating sentences, keep the rest

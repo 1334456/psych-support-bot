@@ -79,9 +79,12 @@ def test_complete_unknown_tag_is_404() -> None:
 def test_exercise_analysis_llm_path(monkeypatch) -> None:
     user_id = f"m3-analysis-llm-{uuid4().hex[:8]}"
     for tag in ("dbt_tipp", "dbt_tipp", "act_defusion"):
-        assert client.post(
-            f"/v1/exercises/{tag}/complete", params={"user_id": user_id}, json={"consent_acknowledged": True}
-        ).status_code == 200
+        assert (
+            client.post(
+                f"/v1/exercises/{tag}/complete", params={"user_id": user_id}, json={"consent_acknowledged": True}
+            ).status_code
+            == 200
+        )
 
     def _fake_analysis(*, records_text: str, expected_language: str, fallback) -> str:
         assert "dbt_tipp" in records_text
@@ -101,9 +104,12 @@ def test_exercise_analysis_llm_path(monkeypatch) -> None:
 
 def test_exercise_analysis_falls_back_when_llm_down(monkeypatch) -> None:
     user_id = f"m3-analysis-fb-{uuid4().hex[:8]}"
-    assert client.post(
-        "/v1/exercises/sleep_wind_down/complete", params={"user_id": user_id}, json={"consent_acknowledged": True}
-    ).status_code == 200
+    assert (
+        client.post(
+            "/v1/exercises/sleep_wind_down/complete", params={"user_id": user_id}, json={"consent_acknowledged": True}
+        ).status_code
+        == 200
+    )
 
     class _AlwaysFailingModel:
         def invoke(self, _messages: object) -> object:
@@ -181,12 +187,7 @@ def test_exercise_usage_events_recorded_without_reflection_note() -> None:
     client.get("/v1/exercises/records/analysis", params={"user_id": user_id})
 
     with SessionLocal() as session:
-        events = (
-            session.query(UsageEvent)
-            .filter(UsageEvent.user_id == user_id)
-            .order_by(UsageEvent.id)
-            .all()
-        )
+        events = session.query(UsageEvent).filter(UsageEvent.user_id == user_id).order_by(UsageEvent.id).all()
     types = [e.event_type for e in events]
     assert "exercise_completed" in types
     assert "ai_analysis_requested" in types
