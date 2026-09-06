@@ -159,6 +159,20 @@ def update_span_output(obs, output: object) -> None:
         logger.debug("Failed to update Langfuse span output", exc_info=True)
 
 
+def update_span_usage(obs, usage: dict[str, int]) -> None:
+    """Best-effort update of a generation span's token usage.
+
+    Keys follow Langfuse's usage_details convention (input / output / total /
+    input_cached) — input_cached powers the prefix-cache hit-rate analysis
+    (Phase 0 baseline for the prompt-layering refactor)."""
+    if obs is None:
+        return
+    try:
+        obs.update(usage_details=usage)
+    except Exception:
+        logger.debug("Failed to update Langfuse span usage", exc_info=True)
+
+
 def flush_langfuse() -> None:
     """Flush pending traces to Langfuse. Call at app shutdown or end of request."""
     client = get_langfuse()

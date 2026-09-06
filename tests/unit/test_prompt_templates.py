@@ -41,7 +41,9 @@ def test_process_prompt_mentions_structure_and_gentle_challenge() -> None:
 
     assert "three short unlabeled conversational messages" in prompt
     assert "Gentle challenge is allowed" in prompt
-    assert "Do not stack multiple questions" in prompt
+    # 单问禁令归 output_contract 承载，过程框架只保留"何时该问"的临床判断
+    assert "Use one strong question" in prompt
+    assert "Do not stack multiple questions" not in prompt
 
 
 def test_consultation_synthesis_prompt_requires_unlabeled_messages() -> None:

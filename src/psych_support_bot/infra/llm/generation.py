@@ -9,15 +9,19 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from psych_support_bot.ai.consultation import consultation_agents
 from psych_support_bot.ai.prompts.templates import (
-    build_boundary_prompt,
+    build_boundary_base_prompt,
+    build_boundary_state_prompt,
     build_consultation_agent_prompt,
-    build_consultation_prompt,
     build_consultation_synthesis_prompt,
-    build_context_prompt,
     build_diagnosis_refusal_prompt,
     build_identity_prompt,
-    build_output_prompt,
-    build_process_prompt,
+    build_knowledge_block_prompt,
+    build_language_lock_prompt,
+    build_memory_block_prompt,
+    build_mode_shape_prompt,
+    build_output_contract_prompt,
+    build_process_base_prompt,
+    build_process_state_prompt,
     build_role_prompt,
 )
 from psych_support_bot.ai.routers.intent import DIAGNOSIS_KEYWORDS
@@ -27,7 +31,11 @@ from psych_support_bot.infra.llm.factory import (
     build_chat_model,
     get_temperature_for_mode,
 )
-from psych_support_bot.infra.telemetry.tracing import trace_span, update_span_output
+from psych_support_bot.infra.telemetry.tracing import (
+    trace_span,
+    update_span_output,
+    update_span_usage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +105,30 @@ def _enforce_language(output: str, expected_language: str) -> str:
     return output
 
 
+def _usage_details(response: object) -> dict[str, int] | None:
+    """Map langchain usage_metadata onto Langfuse usage_details keys.
+
+    网关在 prompt_tokens_details 中回传前缀缓存命中，langchain 转换为
+    input_token_details.cache_read —— 上报为 input_cached，Langfuse 侧
+    即可按调用量化静态前缀的缓存命中率。
+    """
+    usage = getattr(response, "usage_metadata", None)
+    if not usage:
+        return None
+    total = int(usage.get("total_tokens") or 0)
+    if not total:
+        return None
+    details = {
+        "input": int(usage.get("input_tokens") or 0),
+        "output": int(usage.get("output_tokens") or 0),
+        "total": total,
+    }
+    cache_read = int((usage.get("input_token_details") or {}).get("cache_read") or 0)
+    if cache_read:
+        details["input_cached"] = cache_read
+    return details
+
+
 def _invoke(
     system_prompt: str,
     user_message: str,
@@ -161,6 +193,8 @@ def _invoke(
             raise LLMUnavailableError(f"LLM unavailable: {last_exc}") from last_exc
         output = _coerce_content(response.content)
         update_span_output(gen_obs, output)
+        if (usage := _usage_details(response)) is not None:
+            update_span_usage(gen_obs, usage)
 
     try:
         return _enforce_language(output, expected_language)
@@ -188,6 +222,8 @@ def _invoke(
             )
             retry_output = _coerce_content(retry_response.content)
             update_span_output(gen_obs_retry, retry_output)
+            if (retry_usage := _usage_details(retry_response)) is not None:
+                update_span_usage(gen_obs_retry, retry_usage)
         try:
             return _enforce_language(retry_output, expected_language)
         except ValueError:
@@ -345,6 +381,8 @@ def generate_clinically_bounded_reply(
     risk_level: str,
     memory_summary: str,
     knowledge_context: str,
+    # consultation_* 仅为签名兼容保留：普通/危机路径恒为 False，真正的多
+    # 学科会诊走 generate_multidisciplinary_consultation（旧装配，Phase 5 迁移）。
     consultation_required: bool = False,
     consultation_agents: list[str] | None = None,
     consultation_framework: str = "",
@@ -359,35 +397,36 @@ def generate_clinically_bounded_reply(
 ) -> str:
     if not expected_language:
         expected_language = _expected_language(user_message)
+    # Prompt 分层装配（Phase 1）：静态前缀区在前——部署期不变、全用户共享，
+    # 是网关前缀缓存的命中区（Phase 0 实测：≥1024 token 稳定命中，512 块
+    # 粒度）。每轮变量（risk / emotional read / mode 形态 / stage / loop /
+    # memory / knowledge）全部排在静态区之后，绝不插进静态块中间，否则
+    # 从插值点起前缀失稳、缓存全空。
     system_prompt = "\n\n".join(
         [
+            # --- 静态前缀区（仅随语言分池；部署才变）---
             build_role_prompt(),
             build_identity_prompt(),
-            build_boundary_prompt(risk_level=risk_level, emotional_state=emotional_state),
-            build_consultation_prompt(
-                consultation_required=consultation_required,
-                consultation_agents=consultation_agents or [],
-                consultation_framework=consultation_framework,
+            build_boundary_base_prompt(),
+            build_process_base_prompt(),
+            build_output_contract_prompt(expected_language),
+            build_language_lock_prompt(expected_language),
+            # --- 每轮状态区（缓存断点之后）---
+            build_boundary_state_prompt(
+                risk_level=risk_level,
+                emotional_state=emotional_state,
             ),
-            build_process_prompt(
+            build_mode_shape_prompt(mode, risk_level, no_question_mode=no_question_mode),
+            build_process_state_prompt(
                 interview_stage=interview_stage,
                 question_strategy=question_strategy,
                 challenge_allowed=challenge_allowed,
                 loop_hint=loop_hint,
-                expected_language=expected_language,
                 no_question_mode=no_question_mode,
             ),
-            build_context_prompt(
-                memory_summary=memory_summary,
-                knowledge_context=knowledge_context,
-            ),
-            build_output_prompt(
-                mode=mode,
-                risk_level=risk_level,
-                user_message=user_message,
-                expected_language=expected_language,
-                no_question_mode=no_question_mode,
-            ),
+            # --- 数据区（标注为参考信息，非指令）---
+            build_memory_block_prompt(memory_summary),
+            build_knowledge_block_prompt(knowledge_context),
         ]
     )
     # Anti-repeat guard appended last so it sits closest to the output
