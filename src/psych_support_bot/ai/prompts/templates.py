@@ -1,3 +1,20 @@
+"""Prompt 文案装配层。
+
+Phase 3 起角色/身份文案落盘于 infra/resources/prompts/*.md（单一来源，
+迭代改文件即可）；本模块保留各积木构建函数与拼装顺序契约。
+"""
+
+from functools import lru_cache
+from importlib import resources
+
+
+@lru_cache(maxsize=16)
+def _load_prompt_resource(filename: str) -> str:
+    """加载 infra/resources/prompts/ 下的文案文件（进程内缓存）。"""
+    resource = resources.files("psych_support_bot.infra.resources").joinpath("prompts", filename)
+    return resource.read_text(encoding="utf-8").strip()
+
+
 def build_language_lock_prompt(expected_language: str = "", *, user_message: str = "") -> str:
     """Build a language-lock instruction.
 
@@ -90,37 +107,21 @@ def build_crisis_safety_prompt() -> str:
     )
 
 
+# 身份口径与角色文案（Phase 3 落盘）：单一来源 infra/resources/prompts/。
+# Langfuse 巡检（2026-09-04）发现被问「你是什么模型」时报出底层模型与厂商
+# 名——身份口径必须显式锁定，不能依赖底层模型的自觉（运行时另有
+# safety_reviewer 兜底拦截）。文件缺失时直接抛错：安全关键文案宁可启动
+# 失败也不静默降级。
+
+
 def build_role_prompt() -> str:
-    return (
-        "You are a safety-first AI psychological support assistant for mild-to-moderate mental health needs. "
-        "You provide comfort, emotional support, gentle psychoeducation, and clear boundaries. "
-        "Your primary job is to help users feel understood and better informed, not to act like a therapist. "
-        "You are not a doctor and you must not diagnose, promise treatment, or present yourself as emergency care."
-    )
-
-
-# Identity policy: the assistant speaks as this app's built-in companion and
-# never surfaces the underlying model/vendor/platform. Langfuse 巡检（2026-09-04）
-# 发现被问「你是什么模型」时报出底层模型与厂商名——身份口径必须显式锁定，
-# 不能依赖底层模型的自觉（运行时另有 safety_reviewer 兜底拦截）。
-VENDOR_NAME_EXAMPLES = "dots, GPT, OpenAI, Claude, Anthropic, Gemini, GLM, 智谱, DeepSeek, Qwen, Kimi, 小红书"
+    """角色文案：单一来源 infra/resources/prompts/role.md，迭代改文件即可。"""
+    return _load_prompt_resource("role.md")
 
 
 def build_identity_prompt() -> str:
-    return (
-        "Identity policy: you are this application's built-in AI psychological support companion "
-        "(「本应用内置的 AI 心理支持伙伴」). You are an AI, never a human — say so honestly if asked. "
-        f"When asked who you are, what you are, which model powers you, or who built you, you must NOT reveal, "
-        f"confirm, or deny any specific underlying model, vendor, company, or platform name "
-        f"(e.g. {VENDOR_NAME_EXAMPLES}). "
-        "Answer briefly and warmly as this app's AI psychological support companion, then gently return to how you can help. "
-        "Chinese example: 「我是这个应用里的 AI 心理支持伙伴，一个愿意听你说话的 AI，不是真人也不是心理咨询师。"
-        "有什么想聊的，我都在。」 "
-        "English example: \"I'm this app's AI support companion — an AI here to listen, not a therapist or a human. "
-        "What's on your mind?\" "
-        "If the user keeps pressing for model or vendor details, kindly restate the boundary once "
-        "(「我的身份就是这个应用里的 AI 伙伴，具体技术细节就不展开啦」), and continue supporting them."
-    )
+    """身份口径文案：单一来源 infra/resources/prompts/identity.md。"""
+    return _load_prompt_resource("identity.md")
 
 
 def build_boundary_base_prompt() -> str:
