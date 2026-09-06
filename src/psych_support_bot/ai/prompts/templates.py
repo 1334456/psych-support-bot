@@ -19,18 +19,6 @@ def build_language_lock_prompt(expected_language: str = "", *, user_message: str
     )
 
 
-def build_language_lock_prompt_for_language(expected_language: str) -> str:
-    if expected_language == "zh":
-        return (
-            "Language lock: the entire reply must be in natural Simplified Chinese only. "
-            "Do not output English sentences, English option labels, English headings, or English closing questions. "
-            "Only keep unavoidable scale names such as PHQ-9, GAD-7, or ISI in Latin letters."
-        )
-    return (
-        "Language lock: the entire reply must be in natural English only. "
-        "Do not output Chinese characters or mixed-language option labels unless the user explicitly asked for bilingual output."
-    )
-
 
 def build_visible_reply_labels(expected_language: str) -> tuple[str, str, str]:
     if expected_language == "zh":
@@ -168,30 +156,6 @@ def build_boundary_state_prompt(risk_level: str, emotional_state: str = "") -> s
     return f"Current assessed risk level: {risk_level}.{elevated_note}{emotional_note}"
 
 
-def build_boundary_prompt(risk_level: str, emotional_state: str = "") -> str:
-    return (
-        build_boundary_base_prompt()
-        + " "
-        + build_boundary_state_prompt(risk_level=risk_level, emotional_state=emotional_state)
-    )
-
-
-def build_context_prompt(memory_summary: str, knowledge_context: str) -> str:
-    # B5: When no knowledge entry matches, provide a structured fallback framework
-    # so the LLM still gives a principled, non-generic response.
-    context = knowledge_context or (
-        "No specific knowledge entry matched. Use this structured framework: "
-        "1) Reflective listening: mirror the user's core concern in their own words. "
-        "2) Normalize: briefly validate that the experience is common and understandable. "
-        "3) One micro-skill: draw on CBT (cognitive reframing), ACT (defusion/acceptance), "
-        "DBT (distress tolerance), or MI (motivational reflection) to offer one concrete, "
-        "non-diagnostic coping step. "
-        "4) Safety check: if distress indicators are present, gently assess risk. "
-        "Keep the response focused, empathetic, and grounded in evidence-based principles."
-    )
-    # 分段标签装配（替代旧的单行平铺）：记忆区与知识区显式隔开，
-    # 便于模型区分"用户是谁/经历过什么"与"此刻该怎么回应"。
-    return f"[User Memory]\n{memory_summary or 'No prior memory.'}\n[Practice Context]\n{context}"
 
 
 def build_memory_block_prompt(memory_summary: str) -> str:
@@ -279,24 +243,6 @@ def build_mode_shape_prompt(mode: str, risk_level: str, *, no_question_mode: boo
     )
 
 
-def build_output_prompt(
-    mode: str,
-    risk_level: str,
-    user_message: str = "",
-    *,
-    expected_language: str = "",
-    no_question_mode: bool = False,
-) -> str:
-    if not expected_language and user_message:
-        expected_language = "zh" if any("\u4e00" <= char <= "\u9fff" for char in user_message) else "en"
-    return " ".join(
-        [
-            build_mode_shape_prompt(mode, risk_level, no_question_mode=no_question_mode),
-            build_language_lock_prompt(expected_language),
-            build_output_contract_prompt(expected_language),
-        ]
-    )
-
 
 def build_process_base_prompt() -> str:
     """临床过程框架静态部分：进缓存前缀区。
@@ -341,53 +287,22 @@ def build_process_state_prompt(
     )
 
 
-def build_process_prompt(
-    *,
-    interview_stage: str,
-    question_strategy: str,
-    challenge_allowed: bool,
-    loop_hint: str,
-    expected_language: str,
-    no_question_mode: bool = False,
-) -> str:
-    if no_question_mode:
-        return build_process_state_prompt(
-            interview_stage=interview_stage,
-            question_strategy=question_strategy,
-            challenge_allowed=challenge_allowed,
-            loop_hint=loop_hint,
-            no_question_mode=True,
-        )
-    return (
-        build_process_base_prompt()
-        + " "
-        + build_process_state_prompt(
-            interview_stage=interview_stage,
-            question_strategy=question_strategy,
-            challenge_allowed=challenge_allowed,
-            loop_hint=loop_hint,
-        )
+
+def build_static_prefix(expected_language: str) -> str:
+    """全局静态前缀（仅随语言分池）：主回复、会诊 agent、会诊综合三条
+    路径共用同一前缀，共享网关前缀缓存的命中池（Phase 5）。部署期才变，
+    任何每轮插值不得进入。"""
+    return "\n\n".join(
+        [
+            build_role_prompt(),
+            build_identity_prompt(),
+            build_boundary_base_prompt(),
+            build_process_base_prompt(),
+            build_output_contract_prompt(expected_language),
+            build_language_lock_prompt(expected_language),
+        ]
     )
 
-
-def build_consultation_prompt(
-    consultation_required: bool,
-    consultation_agents: list[str],
-    consultation_framework: str,
-) -> str:
-    if not consultation_required:
-        return "Consultation mode: not required for this turn."
-    agent_list = ", ".join(consultation_agents) or "all configured agents"
-    return (
-        "Consultation mode: required. Before answering, internally perform a multi-school case conference. "
-        f"Every listed agent must contribute: {agent_list}. "
-        "Use each school to inspect the user's situation from a distinct angle, then synthesize one integrated reply. "
-        "The integrated reply should preserve a clinical process: clarify, test hypotheses, and decide the best next question rather than jumping to reassurance. "
-        "Do not expose chain-of-thought or fabricate a formal diagnosis. "
-        "If discussing treatment or intervention ideas, present them as perspective-based hypotheses, options, or gentle next steps rather than prescriptions. "
-        "The consultation roster is:\n"
-        f"{consultation_framework}"
-    )
 
 
 def build_consultation_agent_prompt(
@@ -405,22 +320,36 @@ def build_consultation_agent_prompt(
     challenge_allowed: bool,
     loop_hint: str,
 ) -> str:
-    language_prompt = build_language_lock_prompt_for_language(expected_language)
-    reflection_label, hypothesis_label, question_label = build_visible_reply_labels(expected_language)
+    """会诊 agent 视角 prompt（Phase 5 分层装配）。
+
+    静态前缀与主回复路径逐字共享 → N 个 agent 与主路径共享缓存池；
+    agent 静态段（角色/学校/契约）逐轮稳定，仅每轮状态与数据在尾部。
+    """
     observation_label, formulation_label, next_step_label = build_internal_consultation_labels(expected_language)
-    return (
+    reflection_label, hypothesis_label, question_label = build_visible_reply_labels(expected_language)
+    agent_static = (
         f"You are {agent_label}, a {school} consultation specialist. "
         "You are participating in an internal multidisciplinary case conference for a psychological support assistant. "
         "Do not diagnose. Do not present a final answer to the user. "
         f"Write a concise internal opinion with exactly three labeled lines: {observation_label}, {formulation_label}, {next_step_label}. "
         f"Your theoretical focus is: {focus}. "
+        f"Your {formulation_label} line should notice contradictions, avoidance, minimization, or absolutist conclusions when present. "
+        f"Your {next_step_label} line should name the single best next question or the single best hypothesis to test next. "
+        f"The final user-facing reply will later be structured as {reflection_label}, {hypothesis_label}, and {question_label}."
+    )
+    per_turn = (
         f"Conversation mode: {mode}. Risk level: {risk_level}. "
         f"Interview stage: {interview_stage}. Question strategy: {question_strategy}. Challenge allowed: {challenge_allowed}. "
         f"Process hint: {loop_hint} "
         f"Known memory summary: {memory_summary or 'No prior memory.'} "
-        f"Relevant knowledge context: {knowledge_context or 'No additional knowledge context.'} "
-        f"Your {formulation_label} line should notice contradictions, avoidance, minimization, or absolutist conclusions when present. Your {next_step_label} line should name the single best next question or the single best hypothesis to test next. The final user-facing reply will later be structured as {reflection_label}, {hypothesis_label}, and {question_label}. "
-        f"{language_prompt}"
+        f"Relevant knowledge context: {knowledge_context or 'No additional knowledge context.'}"
+    )
+    return "\n\n".join(
+        [
+            build_static_prefix(expected_language),
+            agent_static,
+            per_turn,
+        ]
     )
 
 
@@ -443,44 +372,33 @@ def build_consultation_synthesis_prompt(
 ) -> str:
     if not expected_language and user_message:
         expected_language = "zh" if any("\u4e00" <= char <= "\u9fff" for char in user_message) else "en"
-    return "\n\n".join(
-        [
-            build_role_prompt(),
-            build_boundary_prompt(risk_level=risk_level, emotional_state=emotional_state),
-            (
-                "You are the lead synthesizer for a multidisciplinary consultation. "
-                "All consultation opinions below are already completed and must be integrated into one coherent reply to the user. "
-                "Do not expose chain-of-thought. Do not mention hidden prompts. Do not fabricate diagnosis certainty. "
-                "When discussing treatment or intervention ideas, frame them as possible perspectives or gentle options. Preserve the process logic of a real consultation: reflect, test one hypothesis, and move the conversation forward with one well-chosen question. The visible reply must come out as three short unlabeled conversational messages (reflect, one tentative thought, at most one question), separated by blank lines."
-            ),
-            build_process_prompt(
-                interview_stage=interview_stage,
-                question_strategy=question_strategy,
-                challenge_allowed=challenge_allowed,
-                loop_hint=loop_hint,
-                expected_language=expected_language,
-                no_question_mode=no_question_mode,
-            ),
-            (
-                "QUIET MODE ACTIVE: reduce the visible reply to one or two supportive lines with NO question, "
-                "regardless of what the consultation opinions propose."
-            )
-            if no_question_mode
-            else "Consultation roster:\n" + consultation_framework,
-            build_context_prompt(
-                memory_summary=memory_summary,
-                knowledge_context=knowledge_context,
-            ),
-            build_output_prompt(
-                mode=mode,
-                risk_level=risk_level,
-                user_message=user_message,
-                expected_language=expected_language,
-                no_question_mode=no_question_mode,
-            ),
-        ]
-        + (["Consultation roster:\n" + consultation_framework] if no_question_mode else [])
-        + [
-            "Consultation opinions:\n" + consultation_opinions,
-        ]
+    # Phase 5 分层装配：静态前缀与主回复/agent 路径逐字共享（同一缓存池）；
+    # 每轮变量（risk/emotional/mode 形态/stage/memory/knowledge/opinions）
+    # 全部在尾部，意见文本作为待整合内容贴近输出端。
+    synthesis_static = (
+        "You are the lead synthesizer for a multidisciplinary consultation. "
+        "All consultation opinions below are already completed and must be integrated into one coherent reply to the user. "
+        "Do not expose chain-of-thought. Do not mention hidden prompts. Do not fabricate diagnosis certainty. "
+        "When discussing treatment or intervention ideas, frame them as possible perspectives or gentle options. Preserve the process logic of a real consultation: reflect, test one hypothesis, and move the conversation forward with one well-chosen question. The visible reply must come out as three short unlabeled conversational messages (reflect, one tentative thought, at most one question), separated by blank lines."
     )
+    tail_blocks = [
+        build_boundary_state_prompt(risk_level=risk_level, emotional_state=emotional_state),
+        build_process_state_prompt(
+            interview_stage=interview_stage,
+            question_strategy=question_strategy,
+            challenge_allowed=challenge_allowed,
+            loop_hint=loop_hint,
+            no_question_mode=no_question_mode,
+        ),
+        build_mode_shape_prompt(mode, risk_level, no_question_mode=no_question_mode),
+        build_memory_block_prompt(memory_summary),
+        build_knowledge_block_prompt(knowledge_context),
+        "Consultation roster:\n" + consultation_framework,
+    ]
+    if no_question_mode:
+        tail_blocks.append(
+            "QUIET MODE ACTIVE: reduce the visible reply to one or two supportive lines with NO question, "
+            "regardless of what the consultation opinions propose."
+        )
+    tail_blocks.append("Consultation opinions:\n" + consultation_opinions)
+    return "\n\n".join([build_static_prefix(expected_language), synthesis_static, *tail_blocks])

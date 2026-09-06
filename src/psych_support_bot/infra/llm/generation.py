@@ -9,20 +9,16 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from psych_support_bot.ai.consultation import consultation_agents
 from psych_support_bot.ai.prompts.templates import (
-    build_boundary_base_prompt,
     build_boundary_state_prompt,
     build_consultation_agent_prompt,
     build_consultation_synthesis_prompt,
     build_diagnosis_refusal_prompt,
-    build_identity_prompt,
     build_knowledge_block_prompt,
-    build_language_lock_prompt,
     build_memory_block_prompt,
     build_mode_shape_prompt,
-    build_output_contract_prompt,
-    build_process_base_prompt,
     build_process_state_prompt,
     build_role_prompt,
+    build_static_prefix,
 )
 from psych_support_bot.ai.routers.intent import DIAGNOSIS_KEYWORDS
 from psych_support_bot.ai.utils.text_matching import _contains_keyword, _normalize_text
@@ -397,20 +393,13 @@ def generate_clinically_bounded_reply(
 ) -> str:
     if not expected_language:
         expected_language = _expected_language(user_message)
-    # Prompt 分层装配（Phase 1）：静态前缀区在前——部署期不变、全用户共享，
-    # 是网关前缀缓存的命中区（Phase 0 实测：≥1024 token 稳定命中，512 块
-    # 粒度）。每轮变量（risk / emotional read / mode 形态 / stage / loop /
-    # memory / knowledge）全部排在静态区之后，绝不插进静态块中间，否则
-    # 从插值点起前缀失稳、缓存全空。
+    # Prompt 分层装配（Phase 1/5）：静态前缀与主回复、会诊 agent、会诊综合
+    # 三条路径逐字共享（同一缓存命中池）——网关前缀缓存 512 块粒度，静态区
+    # 出现任何每轮插值都会从插值点截断缓存。
     system_prompt = "\n\n".join(
         [
             # --- 静态前缀区（仅随语言分池；部署才变）---
-            build_role_prompt(),
-            build_identity_prompt(),
-            build_boundary_base_prompt(),
-            build_process_base_prompt(),
-            build_output_contract_prompt(expected_language),
-            build_language_lock_prompt(expected_language),
+            build_static_prefix(expected_language),
             # --- 每轮状态区（缓存断点之后）---
             build_boundary_state_prompt(
                 risk_level=risk_level,

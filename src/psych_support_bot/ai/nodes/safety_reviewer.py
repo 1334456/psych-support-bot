@@ -2,9 +2,11 @@ import logging
 import re
 
 from psych_support_bot.ai.prompts.templates import (
-    build_boundary_prompt,
-    build_context_prompt,
-    build_output_prompt,
+    build_boundary_base_prompt,
+    build_boundary_state_prompt,
+    build_knowledge_block_prompt,
+    build_memory_block_prompt,
+    build_mode_shape_prompt,
     build_role_prompt,
     build_system_guidance,
 )
@@ -18,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 def _build_leak_markers() -> tuple[str, ...]:
     role_text = build_role_prompt()
-    boundary_text = build_boundary_prompt(risk_level="low")
-    context_text = build_context_prompt(memory_summary="", knowledge_context="")
-    output_text = build_output_prompt(mode="support", risk_level="low", user_message="hello")
+    boundary_text = build_boundary_base_prompt() + build_boundary_state_prompt(risk_level="low")
+    context_text = build_memory_block_prompt(memory_summary="") + build_knowledge_block_prompt(knowledge_context="")
+    output_text = build_mode_shape_prompt(mode="support", risk_level="low")
     system_guidance_text = build_system_guidance(mode="support", risk_level="low")
 
     markers: list[str] = []

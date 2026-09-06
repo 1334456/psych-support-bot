@@ -8,14 +8,10 @@
 
 import psych_support_bot.infra.llm.generation as gen
 from psych_support_bot.ai.prompts.templates import (
-    build_boundary_prompt,
-    build_context_prompt,
     build_knowledge_block_prompt,
     build_memory_block_prompt,
     build_mode_shape_prompt,
     build_output_contract_prompt,
-    build_output_prompt,
-    build_process_prompt,
 )
 
 
@@ -156,48 +152,34 @@ def test_knowledge_block_fallback_framework_preserved() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 旧组合函数兼容（会诊路径 Phase 5 前仍依赖）
+# Phase 5：会诊路径共享静态前缀
 # ---------------------------------------------------------------------------
 
-def test_legacy_boundary_prompt_composition() -> None:
-    combined = build_boundary_prompt(risk_level="low")
-    assert combined.startswith("Always prioritize safety")
-    assert "Current assessed risk level: low." in combined
+def test_consultation_agent_prompt_shares_static_prefix() -> None:
+    """agent prompt 前缀与主回复路径逐字一致（共享缓存池），每轮状态在尾部。"""
+    from psych_support_bot.ai.prompts.templates import (
+        build_consultation_agent_prompt,
+        build_static_prefix,
+    )
 
-
-def test_legacy_context_prompt_composition() -> None:
-    combined = build_context_prompt("记忆", "知识")
-    assert combined == "[User Memory]\n记忆\n[Practice Context]\n知识"
-
-
-def test_legacy_output_prompt_keeps_mode_contract() -> None:
-    support = build_output_prompt(mode="support", risk_level="low", expected_language="zh")
-    assert "ONE to THREE short conversational messages" in support
-    assessment = build_output_prompt(mode="assessment", risk_level="low", expected_language="zh")
-    assert "EXACTLY three short conversational messages" in assessment
-    quiet = build_output_prompt(mode="support", risk_level="low", expected_language="zh", no_question_mode=True)
-    assert "QUIET MODE OVERRIDE" in quiet
-
-
-def test_legacy_process_prompt_keeps_challenge_contract() -> None:
-    challenge = build_process_prompt(
+    prompt = build_consultation_agent_prompt(
+        agent_label="CBT",
+        school="cognitive-behavioral",
+        focus="cognitive restructuring",
+        memory_summary="评估记录：PHQ-9 8分",
+        knowledge_context="cbt_001: 认知重构。",
+        mode="support",
+        risk_level="elevated",
+        expected_language="zh",
         interview_stage="hypothesis_testing",
         question_strategy="gentle_challenge",
         challenge_allowed=True,
-        loop_hint="hint",
-        expected_language="en",
+        loop_hint="Test the claim.",
     )
-    assert "Gentle challenge is allowed" in challenge
-    quiet = build_process_prompt(
-        interview_stage="hypothesis_testing",
-        question_strategy="gentle_challenge",
-        challenge_allowed=True,
-        loop_hint="hint",
-        expected_language="en",
-        no_question_mode=True,
-    )
-    assert "do not probe" in quiet
-    assert "Gentle challenge is allowed" not in quiet
+    assert prompt.startswith(build_static_prefix("zh"))
+    # 每轮变量不得进入静态前缀
+    assert "Risk level: elevated" in prompt
+    assert prompt.index("Identity policy") < prompt.index("Risk level: elevated")
 
 
 def test_mode_shape_prompt_carries_guidance() -> None:
