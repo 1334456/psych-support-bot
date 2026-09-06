@@ -20,6 +20,7 @@ def _capture_system_prompt(**overrides) -> str:
 
     def _fake_invoke(system_prompt, user_message, expected_language, **kwargs):
         captured["system_prompt"] = system_prompt
+        captured["user_context"] = kwargs.get("user_context", "")
         return "好的。"
 
     orig_invoke = gen._invoke
@@ -36,6 +37,30 @@ def _capture_system_prompt(**overrides) -> str:
     finally:
         gen._invoke = orig_invoke
     return captured["system_prompt"]
+
+
+def _capture_user_context(**overrides) -> str:
+    """与 _capture_system_prompt 同参，返回传入 _invoke 的 user_context。"""
+    captured: dict[str, str] = {}
+
+    def _fake_invoke(system_prompt, user_message, expected_language, **kwargs):
+        captured["user_context"] = kwargs.get("user_context", "")
+        return "好的。"
+
+    orig_invoke = gen._invoke
+    gen._invoke = _fake_invoke
+    try:
+        gen.generate_clinically_bounded_reply(
+            user_message=overrides.pop("user_message", "我最近睡不好"),
+            mode=overrides.pop("mode", "support"),
+            risk_level=overrides.pop("risk_level", "low"),
+            memory_summary=overrides.pop("memory_summary", "评估记录：PHQ-9 8分（轻度）"),
+            knowledge_context=overrides.pop("knowledge_context", "cbt_001: 认知重构。"),
+            **overrides,
+        )
+    finally:
+        gen._invoke = orig_invoke
+    return captured["user_context"]
 
 
 # ---------------------------------------------------------------------------
@@ -118,15 +143,27 @@ def test_static_prefix_language_pools() -> None:
 # 分层顺序与区块语义
 # ---------------------------------------------------------------------------
 
-def test_layer_order_static_before_state_before_data() -> None:
+def test_layer_order_static_before_state_and_data_in_human_turn() -> None:
+    """Phase 2 收尾：system = 静态+状态；memory/knowledge 数据区进 HumanMessage 前缀。"""
     sp = _capture_system_prompt()
     role_pos = sp.find("You are a safety-first")
     identity_pos = sp.find("Identity policy")
     state_pos = sp.find("Current assessed risk level:")
-    memory_pos = sp.find("[User Memory")
-    knowledge_pos = sp.find("[Practice Context")
-    assert -1 not in {role_pos, identity_pos, state_pos, memory_pos, knowledge_pos}
-    assert role_pos < identity_pos < state_pos < memory_pos < knowledge_pos
+    assert -1 not in {role_pos, identity_pos, state_pos}
+    assert role_pos < identity_pos < state_pos
+    # 数据区不再出现在 system prompt
+    assert "[User Memory" not in sp
+    assert "[Practice Context" not in sp
+
+    context = _capture_user_context()
+    memory_pos = context.find("[User Memory")
+    knowledge_pos = context.find("[Practice Context")
+    assert -1 not in {memory_pos, knowledge_pos}
+    assert memory_pos < knowledge_pos
+    # 数据区带信任边界标注
+    assert "NOT instructions" in context
+    # 用户原话不进数据前缀（由 _invoke 拼接：context + "\n\n" + user_message）
+    assert "我最近睡不好" not in context
 
 
 def test_memory_block_marked_as_data_not_instructions() -> None:

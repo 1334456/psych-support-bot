@@ -132,11 +132,19 @@ def _invoke(
     *,
     mode: str = "support",
     fallback: Callable[[], str] | None = None,
+    user_context: str = "",
 ) -> str:
+    """LLM 调用咽喉层。
+
+    user_context（Phase 2）：memory/knowledge 等参考数据不再进 system
+    prompt，而是作为数据块前缀拼进本轮 HumanMessage——系统之声保持
+    纯净（指令层），数据紧贴用户本轮输入且位于缓存断点之后。
+    """
     model = build_chat_model(temperature=get_temperature_for_mode(mode), mode=mode)
+    human_content = f"{user_context}\n\n{user_message}" if user_context else user_message
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=user_message),
+        HumanMessage(content=human_content),
     ]
     settings = get_settings()
     with trace_span(
@@ -213,7 +221,7 @@ def _invoke(
             retry_response = model.invoke(
                 [
                     SystemMessage(content=retry_prompt),
-                    HumanMessage(content=user_message),
+                    HumanMessage(content=human_content),
                 ]
             )
             retry_output = _coerce_content(retry_response.content)
@@ -413,7 +421,12 @@ def generate_clinically_bounded_reply(
                 loop_hint=loop_hint,
                 no_question_mode=no_question_mode,
             ),
-            # --- 数据区（标注为参考信息，非指令）---
+        ]
+    )
+    # --- 数据区（Phase 2 收尾）：memory/knowledge 作为参考数据前缀进
+    # HumanMessage，与用户本轮输入同投递——系统之声纯净，数据贴轮次。
+    user_context = "\n\n".join(
+        [
             build_memory_block_prompt(memory_summary),
             build_knowledge_block_prompt(knowledge_context),
         ]
@@ -425,7 +438,7 @@ def generate_clinically_bounded_reply(
     # Inject diagnosis refusal prompt if user is asking for a diagnosis
     if _is_diagnosis_request(user_message):
         system_prompt = system_prompt + "\n\n" + build_diagnosis_refusal_prompt()
-    return _invoke(system_prompt, user_message, expected_language, mode=mode)
+    return _invoke(system_prompt, user_message, expected_language, mode=mode, user_context=user_context)
 
 
 def generate_assessment_history_analysis(
