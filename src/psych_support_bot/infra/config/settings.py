@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     langfuse_public_key: str = Field(default="", alias="LANGFUSE_PUBLIC_KEY")
     langfuse_secret_key: str = Field(default="", alias="LANGFUSE_SECRET_KEY")
     langfuse_host: str = Field(default="https://cloud.langfuse.com", alias="LANGFUSE_HOST")
+    # 流量环境标记：生产入口保持默认 "production"；eval/测试入口在进程
+    # 早期覆盖为 "eval"/"test"（见 evals/runner.py 与 tests/conftest.py），
+    # 使 Langfuse 仪表盘与巡检可按环境过滤——基线巡检（2026-09-06）显示
+    # 自动化流量占 trace 总量约 89%，不分流则所有统计先要人工排噪。
+    langfuse_environment: str = Field(default="production", alias="LANGFUSE_ENVIRONMENT")
     default_conversation_mode: str = "support"
     app_debug: bool = False
     # LLM-as-judge model (separate model for evaluation scoring)

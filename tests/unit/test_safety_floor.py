@@ -1,6 +1,21 @@
 """Safety floor: a recent flagged screening must raise the risk floor."""
 
+import pytest
+
+import psych_support_bot.ai.nodes.risk_classifier as rc_mod
 from psych_support_bot.ai.nodes.risk_classifier import classify_risk
+
+
+@pytest.fixture(autouse=True)
+def _no_llm_semantic(monkeypatch):
+    """本文件只验证地板逻辑本身：屏蔽 LLM 语义通道（fail-safe 维持规则
+    判定）。规则判 low 的消息原本会打真实 LLM——全量跑时曾因真实网络
+    返回偶发翻转判定（2026-09-06），属单测网络依赖，此处根除。"""
+
+    def _raise(msg, lang):
+        raise RuntimeError("LLM unavailable in floor tests")
+
+    monkeypatch.setattr(rc_mod, "classify_risk_llm", _raise)
 
 
 def _state(message: str = "今天就是有点累", floor: str = ""):

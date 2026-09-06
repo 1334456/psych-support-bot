@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
+
+# 必须在 import 应用模块（其调用链可能触发 get_settings 缓存）之前设置：
+# eval 流量在 Langfuse 标记为独立 environment，与生产 trace 分流。
+# 基线巡检（2026-09-06）：eval 夹具占云项目 trace 的 ~80%。
+os.environ.setdefault("LANGFUSE_ENVIRONMENT", "eval")
 
 from psych_support_bot.ai.nodes.safety_reviewer import (
     DIAGNOSIS_PATTERNS,

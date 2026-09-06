@@ -2,6 +2,9 @@
 
 from typing import cast
 
+import pytest
+
+import psych_support_bot.ai.nodes.risk_classifier as rc_mod
 from psych_support_bot.ai.nodes.risk_classifier import (
     _has_previous_elevated,
     classify_risk,
@@ -10,6 +13,20 @@ from psych_support_bot.ai.schemas.messages import (
     GeneratedReply,
     RiskResult,
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_llm_semantic(monkeypatch):
+    """规则判 low/elevated 的消息会触发 LLM 语义分类——本文件的用例
+    均未自带 monkeypatch，等于在单测里打真实网络，reasoning 模型偶发
+    升级判定导致断言翻转（2026-09-06 全量跑两次复现）。此处统一屏蔽，
+    走 fail-safe 维持规则判定；需要 LLM 行为的用例在自己的测试体内
+    setattr（优先级高于本 fixture），不受影响。"""
+
+    def _raise(msg, lang):
+        raise RuntimeError("LLM unavailable in risk classifier tests")
+
+    monkeypatch.setattr(rc_mod, "classify_risk_llm", _raise)
 from psych_support_bot.ai.schemas.state import GraphState
 
 

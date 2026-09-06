@@ -16,6 +16,10 @@ from psych_support_bot.infra.config.settings import get_settings
 
 def pytest_sessionstart(session) -> None:  # type: ignore[no-untyped-def]
     get_settings.cache_clear()
+    # Langfuse 流量标记为 test 环境（与 evals 的 "eval"、生产的
+    # "production" 区分）；_no_langfuse_export fixture 本已屏蔽导出，
+    # 这里是显式声明 + 双保险。
+    os.environ.setdefault("LANGFUSE_ENVIRONMENT", "test")
     # 投机并行走真实回复生成 LLM——测试环境整体关闭（个别投机用例自行开启），
     # 否则既有 risk/回单类单测会随投机路径多打一次真实 LLM。
     os.environ["SPECULATIVE_REPLY_ENABLED"] = "false"

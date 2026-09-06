@@ -43,6 +43,23 @@ HIGH_RISK_KEYWORDS = [
     "想去另一个世界",
     "escape this world",
     "leave this world",
+    # Langfuse 基线巡检（2026-09-06）：英文被动死亡意愿系统性落在
+    # elevated/support（32 例 "better off dead"），与 zh 侧"逃离世界→高危"
+    # 同一临床现象两套标准；按既有哲学（漏报代价>误报代价）对齐升高危。
+    "better off dead",
+    "better off without me",
+    "never wake up",
+    "not wake up",
+    "point of living",
+    "want to disappear",
+    "want the pain to stop",
+    # zh 侧同批巡检盲区：生产中靠 LLM 语义层兜住、规则层全部漏过——
+    # LLM 空响应（dots 网关已知抖动）时这些表述将裸奔到 low。
+    "想消失",
+    "想鼠",
+    "想跳下去",
+    "死了才能解脱",
+    "死了就是解脱",
 ]
 
 NEGATION_PATTERNS = [
@@ -65,7 +82,8 @@ ELEVATED_RISK_KEYWORDS = [
     "not sleeping",
     "worthless",
     "stopped sleeping",
-    "better off dead",
+    # "better off dead" 已升入 HIGH_RISK_KEYWORDS（2026-09-06 基线巡检：
+    # 被动死亡意愿对齐 zh 侧标准）；宽泛的 "better off" 保留在此。
     "better off",
     "撑不住了",
     "扛不住了",
@@ -214,6 +232,15 @@ CHINESE_SUICIDE_DENIAL_PATTERNS = [
     "没想过自杀",
     "没有想死",
     "不想自杀",
+    # 高危新词的否定保护：「我不想消失/没想鼠」是日常表达，不得因
+    # "想消失/想鼠" 入高危词表而误触发（B4.2 近邻窗口同样适用）。
+    "不想消失",
+    "没想消失",
+    "没想过消失",
+    "没有想消失",
+    "不想鼠",
+    "没想鼠",
+    "没有想鼠",
 ]
 
 # B4.2: Negation proximity window.

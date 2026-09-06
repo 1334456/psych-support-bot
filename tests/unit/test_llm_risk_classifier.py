@@ -82,7 +82,11 @@ def test_merge_never_downgrades_rule_verdict() -> None:
 
 
 def test_rule_low_message_triggers_llm_fallback(monkeypatch) -> None:
-    """规则判 low 的危机隐喻消息被 LLM 升级为 high + crisis 模式。"""
+    """规则判 low 的危机隐喻消息被 LLM 升级为 high + crisis 模式。
+
+    「我只想消失」已入高危词表（2026-09-06 被动死亡意愿专项）直达
+    high，不再依赖 LLM——本用例改用词表外隐喻验证 LLM 兜底通道本身。
+    """
     calls: list[str] = []
     # patch 导入后的引用（risk_classifier 命名空间），而非源模块
     monkeypatch.setattr(
@@ -90,9 +94,17 @@ def test_rule_low_message_triggers_llm_fallback(monkeypatch) -> None:
         "classify_risk_llm",
         lambda msg, lang: (calls.append(msg), (_llm("high"), _semantic()))[1],
     )
-    state = classify_risk(_build_state("我只想消失，永远地消失"))
-    assert calls == ["我只想消失，永远地消失"]
+    state = classify_risk(_build_state("我想去一个没人找得到我的地方"))
+    assert calls == ["我想去一个没人找得到我的地方"]
     assert state["risk_result"].risk_level == "high"
+    assert state["risk_result"].needs_crisis_mode is True
+    assert state["mode"] == "crisis"
+
+
+def test_zh_passive_ideation_now_direct_high() -> None:
+    """「想消失」类被动死亡意愿入词表后由规则层直达 high（不经 LLM）。"""
+    state = classify_risk(_build_state("我只想消失，永远地消失"))
+    assert state["risk_result"].risk_level in {"high", "critical"}
     assert state["risk_result"].needs_crisis_mode is True
     assert state["mode"] == "crisis"
 
