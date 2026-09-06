@@ -47,7 +47,14 @@ MODE_LIMITS: dict[str, "ModelCallLimits"] = {
     "support": ModelCallLimits(max_tokens=1024, timeout=30.0),
     "planning": ModelCallLimits(max_tokens=1024, timeout=30.0),
     "intervention": ModelCallLimits(max_tokens=1024, timeout=30.0),
-    "risk_classification": ModelCallLimits(max_tokens=320, timeout=15.0),
+    # 1024 而非更小的"JSON 只需 ~150 token"直觉值：dots 网关是 reasoning
+    # 模型且已实测忽略所有关闭思考的参数（reasoning_effort / thinking /
+    # enable_thinking，2026-09-06 探测），reasoning_content 与 JSON 共享
+    # 这份预算——320 曾被思考烧穿，产出空正文或半截 JSON，语义通道
+    # （topics/emotional_state）静默丢失。fail-safe 会维持规则判定，但
+    # 预算不足等于语义兜底通道常态性失效。max_tokens 是上限不产生费用，
+    # 留足思考空间是当前唯一稳定手段。
+    "risk_classification": ModelCallLimits(max_tokens=1024, timeout=15.0),
 }
 
 
