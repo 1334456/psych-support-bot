@@ -144,6 +144,133 @@
       display: block;
     }
 
+    /* ========== TOOLS TAB（练习 + 评估 分段切换） ========== */
+    .tools-seg {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      background: #fff;
+      margin-bottom: 14px;
+    }
+
+    .tools-seg button {
+      padding: 9px 30px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      background: #fff;
+      color: var(--muted);
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tools-seg button:hover { color: var(--ink); }
+
+    .tools-seg button + button { border-left: 1px solid var(--rule); }
+
+    .tools-seg button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .tools-view { display: none; }
+    .tools-view.active { display: block; }
+
+    /* ========== ME TAB（个人信息 / 概览 / 统一历史 / 数据管理） ========== */
+    .kv-row {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      padding: 7px 2px;
+      border-bottom: 1px dotted var(--soft);
+      font-family: "Courier New", monospace;
+    }
+
+    .kv-row:last-child { border-bottom: none; }
+    .kv-row .k { color: var(--muted); flex: 0 0 130px; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .stat-card { border: 1px solid var(--rule); background: #fff; padding: 12px 16px; }
+    .stat-card .num { font-family: "Courier New", monospace; font-size: 22px; font-weight: 700; }
+    .stat-card .num small { font-size: 12px; font-weight: 400; color: var(--muted); }
+    .stat-card .lbl { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+
+    .filter-chips { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+
+    .type-chip {
+      font-family: "Courier New", monospace;
+      font-size: 11px;
+      padding: 2px 12px;
+      border: 1px solid var(--soft);
+      color: var(--muted);
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .type-chip:hover { border-color: var(--muted); }
+    .type-chip.active { border-color: var(--rule); color: var(--ink); font-weight: 700; }
+
+    .tl-tag {
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      border: 1px solid var(--rule);
+      padding: 0 6px;
+      letter-spacing: 1px;
+      flex: 0 0 auto;
+    }
+
+    .mgmt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 2px;
+      border-bottom: 1px dotted var(--soft);
+    }
+
+    .mgmt-row:last-child { border-bottom: none; }
+    .mgmt-row .m-title { font-size: 14px; font-weight: 700; }
+    .mgmt-row .m-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.6; }
+    .mgmt-row .m-main { min-width: 0; }
+    .mgmt-row button { white-space: nowrap; }
+
+    .btn-outline {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 16px;
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--rule);
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+
+    .btn-outline:hover { background: var(--ink); color: #fff; }
+
+    .btn-danger {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 16px;
+      background: #fff;
+      color: var(--ink);
+      border: 3px double var(--rule);
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover { background: var(--ink); color: #fff; }
+
     /* Common newsprint section */
     .section-title {
       font-size: 16px;
@@ -1727,9 +1854,9 @@
 
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="chat" role="tab">聊天</button>
-      <button class="tab" data-tab="exercises" role="tab">练习</button>
-      <button class="tab" data-tab="assessments" role="tab">评估</button>
+      <button class="tab" data-tab="tools" role="tab">工具</button>
       <button class="tab" data-tab="checkin" role="tab">打卡</button>
+      <button class="tab" data-tab="me" role="tab">我</button>
     </nav>
 
     <!-- ========== CHAT PANEL ========== -->
@@ -1773,66 +1900,73 @@
       </div>
     </section>
 
-    <!-- ========== EXERCISES PANEL (C1) ========== -->
-    <section class="panel" id="panel-exercises">
-      <h2 class="section-title">练习工具面板</h2>
-      <p class="section-subtitle">选择一个练习，每一步写下你的真实想法，完成后查看完整的练习记录。</p>
+    <!-- ========== TOOLS PANEL (练习 + 评估，分段切换) ========== -->
+    <section class="panel" id="panel-tools">
+      <h2 class="section-title">工具</h2>
+      <p class="section-subtitle">想整理一下情绪，或了解一下最近的状态——都在这里。练习随时可做，量表建议间隔两周以上。</p>
 
-      <div id="exList">
-        <div class="exercise-grid" id="exerciseGrid"></div>
+      <div class="tools-seg" id="toolsSeg">
+        <button class="active" id="toolsSegExercise" onclick="switchToolsSeg('exercise')">练 习</button>
+        <button id="toolsSegAssess" onclick="switchToolsSeg('assess')">评 估</button>
       </div>
 
-      <div id="exViewer" style="display:none;">
-        <div class="back-row"><button class="link-btn" onclick="showExerciseList()">← 返回练习列表</button></div>
-        <div class="exercise-viewer" id="exerciseViewer"></div>
-      </div>
-
-      <!-- 练习记录：仅在练习列表视图展示（练习进行中隐藏，避免干扰练习） -->
-      <div class="record-section" id="exerciseHistorySection">
-        <div class="trend-title"><span>练习记录</span></div>
-        <div id="exerciseHistoryBody">
-          <div class="empty-history">加载中…</div>
+      <!-- 视图：练习 -->
+      <div class="tools-view active" id="toolsViewExercise">
+        <p class="section-subtitle">选择一个练习，每一步写下你的真实想法，完成后查看完整的练习记录。</p>
+        <div id="exList">
+          <div class="exercise-grid" id="exerciseGrid"></div>
         </div>
-      </div>
-    </section>
 
-    <!-- ========== ASSESSMENTS PANEL (C2) ========== -->
-    <section class="panel" id="panel-assessments">
-      <h2 class="section-title">评估问卷</h2>
-      <p class="section-subtitle">请根据过去两周的整体情况作答。结果为筛查参考，不等同于临床诊断。</p>
+        <div id="exViewer" style="display:none;">
+          <div class="back-row"><button class="link-btn" onclick="showExerciseList()">← 返回练习列表</button></div>
+          <div class="exercise-viewer" id="exerciseViewer"></div>
+        </div>
 
-      <div id="assessList">
-        <div class="scale-list" id="scaleList"></div>
-      </div>
-
-      <div id="assessViewer" style="display:none;">
-        <div class="back-row"><button class="link-btn" onclick="showAssessList()">← 返回量表列表</button></div>
-        <div class="assess-viewer" id="assessViewBox"></div>
-
-        <!-- 结果页附属：仅在测评完成出结果后展示；答题过程中隐藏（不在测试时添堵） -->
-        <div class="record-section" id="assessHistorySection" style="display:none;">
-          <div class="trend-title"><span>测评历史与趋势</span></div>
-          <div id="assessHistoryBody">
+        <!-- 练习记录：仅在练习列表视图展示（练习进行中隐藏，避免干扰练习） -->
+        <div class="record-section" id="exerciseHistorySection">
+          <div class="trend-title"><span>练习记录</span></div>
+          <div id="exerciseHistoryBody">
             <div class="empty-history">加载中…</div>
           </div>
         </div>
-
-        <div class="record-section" id="assessAnalysisSection" style="display:none;">
-          <div class="trend-title"><span>AI 趋势解读</span><span class="paywall-tag">AI ANALYSIS</span></div>
-          <div id="assessAnalysisBody">
-            <div class="empty-history">点击下方按钮，基于你的历次分数生成三句内的趋势解读。</div>
-          </div>
-          <div class="actions-row" style="margin-top:12px;">
-            <button class="btn btn-secondary" id="assessAnalysisBtn" onclick="generateAssessAnalysis()">生成解读</button>
-          </div>
-        </div>
       </div>
 
-      <!-- 测评历史：量表列表视图常驻（练习记录归练习页专属；返回列表/完成量表后即时刷新） -->
-      <div class="record-section" id="assessHistoryListSection">
-        <div class="trend-title"><span>测评历史</span></div>
-        <div id="assessHistoryListBody">
-          <div class="empty-history">加载中…</div>
+      <!-- 视图：评估 -->
+      <div class="tools-view" id="toolsViewAssess">
+        <p class="section-subtitle">请根据过去两周的整体情况作答。结果为筛查参考，不等同于临床诊断。</p>
+        <div id="assessList">
+          <div class="scale-list" id="scaleList"></div>
+        </div>
+
+        <div id="assessViewer" style="display:none;">
+          <div class="back-row"><button class="link-btn" onclick="showAssessList()">← 返回量表列表</button></div>
+          <div class="assess-viewer" id="assessViewBox"></div>
+
+          <!-- 结果页附属：仅在测评完成出结果后展示；答题过程中隐藏（不在测试时添堵） -->
+          <div class="record-section" id="assessHistorySection" style="display:none;">
+            <div class="trend-title"><span>测评历史与趋势</span></div>
+            <div id="assessHistoryBody">
+              <div class="empty-history">加载中…</div>
+            </div>
+          </div>
+
+          <div class="record-section" id="assessAnalysisSection" style="display:none;">
+            <div class="trend-title"><span>AI 趋势解读</span><span class="paywall-tag">AI ANALYSIS</span></div>
+            <div id="assessAnalysisBody">
+              <div class="empty-history">点击下方按钮，基于你的历次分数生成三句内的趋势解读。</div>
+            </div>
+            <div class="actions-row" style="margin-top:12px;">
+              <button class="btn btn-secondary" id="assessAnalysisBtn" onclick="generateAssessAnalysis()">生成解读</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 测评历史：量表列表视图常驻（返回列表/完成量表后即时刷新） -->
+        <div class="record-section" id="assessHistoryListSection">
+          <div class="trend-title"><span>测评历史</span></div>
+          <div id="assessHistoryListBody">
+            <div class="empty-history">加载中…</div>
+          </div>
         </div>
       </div>
     </section>
@@ -1926,6 +2060,70 @@
         <div class="actions-row" style="margin-top:12px;">
           <button class="btn btn-secondary" id="checkinAnalysisBtn" onclick="generateCheckinAnalysis()">生成解读</button>
         </div>
+      </div>
+    </section>
+
+    <!-- ========== ME PANEL (个人信息 + 历史 + 数据管理) ========== -->
+    <section class="panel" id="panel-me">
+      <h2 class="section-title">我</h2>
+      <p class="section-subtitle">这里只属于你：你的记录、你的数据。随时可以导出，也随时可以抹去。</p>
+
+      <div class="record-section">
+        <div class="trend-title"><span>个人信息</span></div>
+        <div id="meProfileBody">
+          <div class="empty-history">加载中…</div>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="meStatGrid" style="margin-top:12px;">
+        <div class="stat-card"><div class="num" id="meStatExercise">-<small> 次</small></div><div class="lbl">练习 · 近 30 天</div></div>
+        <div class="stat-card"><div class="num" id="meStatAssess">-<small> 次</small></div><div class="lbl">测评 · 近 30 天</div></div>
+        <div class="stat-card"><div class="num" id="meStatCheckin">-<small>/30 天</small></div><div class="lbl">打卡 · 近 30 天</div></div>
+      </div>
+
+      <div class="record-section" style="margin-top:12px;">
+        <div class="trend-title"><span>我的历史</span></div>
+        <div class="filter-chips">
+          <span class="type-chip active" data-type="all" onclick="filterMeTimeline('all')">全部</span>
+          <span class="type-chip" data-type="assess" onclick="filterMeTimeline('assess')">测评</span>
+          <span class="type-chip" data-type="exercise" onclick="filterMeTimeline('exercise')">练习</span>
+          <span class="type-chip" data-type="checkin" onclick="filterMeTimeline('checkin')">打卡</span>
+        </div>
+        <div id="meTimelineBody">
+          <div class="empty-history">加载中…</div>
+        </div>
+        <div class="cl-note" style="margin-top:8px;">仅显示最近 20 条 · 用上面的类型筛选查看更多</div>
+      </div>
+
+      <div class="record-section" style="margin-top:12px;">
+        <div class="trend-title"><span>数据管理</span></div>
+        <div class="mgmt-row">
+          <div class="m-main">
+            <div class="m-title">下载我的数据</div>
+            <div class="m-desc">导出一个 JSON 文件：测评分数、练习回答、打卡记录与对话历史。文件只生成在你本机。</div>
+          </div>
+          <button class="btn" id="meExportBtn" onclick="exportMyData()">下载</button>
+        </div>
+        <div class="mgmt-row">
+          <div class="m-main">
+            <div class="m-title">清空历史记录</div>
+            <div class="m-desc">删除全部测评、练习与打卡记录，不影响聊天。需要二次确认，删除后不可恢复。</div>
+          </div>
+          <button class="btn-outline" onclick="clearMyRecords()">清空…</button>
+        </div>
+        <div class="mgmt-row">
+          <div class="m-main">
+            <div class="m-title">注销账号</div>
+            <div class="m-desc">删除你的身份与全部数据（含聊天），需要二次确认。这是协议里承诺的删除权。</div>
+          </div>
+          <button class="btn-danger" onclick="deleteMyAccount()">注销…</button>
+        </div>
+      </div>
+
+      <div class="record-section" style="margin-top:12px;">
+        <div class="trend-title"><span>帮助与安全</span></div>
+        <div class="cl-note">若你此刻处于紧急情况，请直接拨打当地心理危机热线——在聊天里说出你的困境时，危机求助资源会第一时间出现。</div>
+        <div class="cl-note">隐私协议与数据处理协议在首次使用时确认；版本更新后会重新征求你的同意。</div>
       </div>
     </section>
 
@@ -2153,10 +2351,20 @@
           tab.classList.add('active');
           document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
           if (tab.dataset.tab === 'checkin') renderCheckinStatus();
-          if (tab.dataset.tab === 'exercises') loadExerciseRecords();
-          if (tab.dataset.tab === 'assessments') loadAssessHistory();
+          if (tab.dataset.tab === 'tools') { loadExerciseRecords(); loadAssessHistory(); }
+          if (tab.dataset.tab === 'me') loadMePage();
         });
       });
+    }
+
+    // 工具页内分段切换：练习 / 评估（各自保留列表与记录，互不混排）
+    function switchToolsSeg(name) {
+      document.getElementById('toolsSegExercise').classList.toggle('active', name === 'exercise');
+      document.getElementById('toolsSegAssess').classList.toggle('active', name === 'assess');
+      document.getElementById('toolsViewExercise').classList.toggle('active', name === 'exercise');
+      document.getElementById('toolsViewAssess').classList.toggle('active', name === 'assess');
+      if (name === 'exercise') loadExerciseRecords();
+      else loadAssessHistory();
     }
 
     function switchTab(name) {
@@ -3677,6 +3885,198 @@
         bodies.forEach(el => { el.innerHTML = '<div class="history-table">' + html + '</div>'; });
       } catch (err) {
         bodies.forEach(el => { el.innerHTML = '<div class="empty-history">报告加载失败：' + escapeHtml(err.message) + '</div>'; });
+      }
+    }
+
+    // ========== 「我」页：个人信息 / 概览 / 统一历史 / 数据管理 ==========
+    async function loadMePage() {
+      loadMeSummary();
+      await loadMeTimeline();
+    }
+
+    async function loadMeSummary() {
+      const body = document.getElementById('meProfileBody');
+      try {
+        const res = await fetchOrThrow(API_BASE + '/v1/me/summary?user_id=' + encodeURIComponent(USER_ID));
+        const s = await res.json();
+        const shortId = USER_ID.length > 14 ? USER_ID.slice(0, 14) + '…' : USER_ID;
+        let html = '<div class="kv-row"><span class="k">访客身份</span><span>' + escapeHtml(shortId) +
+          '（本机生成，仅保存在这台设备）</span></div>';
+        if (s.created_at) {
+          const created = new Date(s.created_at);
+          const days = Math.max(1, Math.round((Date.now() - created.getTime()) / 86400000) + 1);
+          const dateStr = created.getFullYear() + '-' + String(created.getMonth() + 1).padStart(2, '0') +
+            '-' + String(created.getDate()).padStart(2, '0');
+          html += '<div class="kv-row"><span class="k">首次使用</span><span>' + dateStr + ' · 已陪伴 ' + days + ' 天</span></div>';
+        }
+        const ver = localStorage.getItem(STORE_KEYS.PRIVACY_VER);
+        html += '<div class="kv-row"><span class="k">协议版本</span><span>' +
+          (ver ? escapeHtml(ver) + '（已确认）' : '尚未确认') + '</span></div>';
+        body.innerHTML = html;
+        document.getElementById('meStatExercise').innerHTML = s.counts_30d.exercises + '<small> 次</small>';
+        document.getElementById('meStatAssess').innerHTML = s.counts_30d.assessments + '<small> 次</small>';
+        document.getElementById('meStatCheckin').innerHTML = s.counts_30d.checkins + '<small>/30 天</small>';
+      } catch (err) {
+        body.innerHTML = '<div class="empty-history">个人信息加载失败：' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    let meTimelineType = 'all';
+
+    async function loadMeTimeline() {
+      const body = document.getElementById('meTimelineBody');
+      body.innerHTML = loadingLine('正在整理你的记录');
+      try {
+        const [assessRes, exRes, ckRes] = await Promise.all([
+          fetchOrThrow(API_BASE + '/v1/assessments?user_id=' + encodeURIComponent(USER_ID) + '&limit=20'),
+          fetchOrThrow(API_BASE + '/v1/exercises/records?user_id=' + encodeURIComponent(USER_ID) + '&limit=20'),
+          fetchOrThrow(API_BASE + '/v1/checkins?user_id=' + encodeURIComponent(USER_ID) + '&days=30'),
+        ]);
+        const [assessments, exercises, checkins] =
+          await Promise.all([assessRes.json(), exRes.json(), ckRes.json()]);
+        const entries = [];
+        (assessments || []).forEach(r => entries.push({ type: 'assess', ts: new Date(r.created_at).getTime(), raw: r }));
+        (exercises || []).forEach(r => entries.push({ type: 'exercise', ts: new Date(r.completed_at).getTime(), raw: r }));
+        (checkins || []).forEach(r => entries.push({ type: 'checkin', ts: new Date(r.date + 'T12:00:00').getTime(), raw: r }));
+        entries.sort((a, b) => b.ts - a.ts);
+        meTimelineCache = entries.slice(0, 20);
+        renderMeTimeline();
+      } catch (err) {
+        body.innerHTML = '<div class="empty-history">历史加载失败：' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    let meTimelineCache = [];
+
+    function meDateStr(ts) {
+      const d = new Date(ts);
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function meRowHtml(entry) {
+      const r = entry.raw;
+      const dateStr = meDateStr(entry.ts);
+      if (entry.type === 'assess') {
+        return '<div class="history-row" data-type="assess">' +
+          '<span class="h-date">' + dateStr + '</span>' +
+          '<span class="tl-tag">测评</span>' +
+          '<span class="h-type">' + escapeHtml(typeLabel(r.assessment_type)) + '</span>' +
+          '<span>' + r.score + ' 分 · ' + escapeHtml(BAND_LABELS[r.severity_band] || r.severity_band) + '</span>' +
+          '<span class="h-src">' + escapeHtml(SRC_LABELS[r.source] || r.source) + '</span>' +
+          '</div>';
+      }
+      if (entry.type === 'exercise') {
+        const clickable = r.id
+          ? ' style="cursor:pointer;" onclick="meOpenExercise(' + r.id + ')"' : '';
+        return '<div class="history-row" data-type="exercise"' + clickable + '>' +
+          '<span class="h-date">' + dateStr + '</span>' +
+          '<span class="tl-tag">练习</span>' +
+          '<span class="h-type">' + escapeHtml(exerciseLabel(r.exercise_tag)) + '</span>' +
+          '<span class="h-src">' + escapeHtml(SRC_LABELS[r.source] || r.source) + '</span>' +
+          '</div>' +
+          (r.reflection_note
+            ? '<div class="cl-note" data-type="exercise">「' + escapeHtml(r.reflection_note) + '」</div>'
+            : '');
+      }
+      return '<div class="history-row" data-type="checkin">' +
+        '<span class="h-date">' + dateStr + '</span>' +
+        '<span class="tl-tag">打卡</span>' +
+        '<span class="h-type">心情 ' + r.mood_score + ' · 焦虑 ' + r.anxiety_score + '</span>' +
+        '<span>睡眠 ' + (typeof r.sleep_hours === 'number' ? r.sleep_hours.toFixed(1) : r.sleep_hours) + 'h</span>' +
+        '<span class="h-src">打卡</span>' +
+        '</div>' +
+        (r.note ? '<div class="cl-note" data-type="checkin">「' + escapeHtml(r.note) + '」</div>' : '');
+    }
+
+    function renderMeTimeline() {
+      const body = document.getElementById('meTimelineBody');
+      if (!meTimelineCache.length) {
+        body.innerHTML = '<div class="empty-history">还没有任何记录——去「工具」做一次练习或量表，或到「打卡」记下今天的状态。</div>';
+        return;
+      }
+      body.innerHTML = meTimelineCache.map(meRowHtml).join('');
+      filterMeTimeline(meTimelineType);
+    }
+
+    function filterMeTimeline(type) {
+      meTimelineType = type;
+      document.querySelectorAll('.filter-chips .type-chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.type === type));
+      document.querySelectorAll('#meTimelineBody [data-type]').forEach(el =>
+        el.style.display = (type === 'all' || el.dataset.type === type) ? '' : 'none');
+    }
+
+    // 从「我」页点开练习报告：跳回工具页的练习记录区展示详情
+    function meOpenExercise(recordId) {
+      switchTab('tools');
+      switchToolsSeg('exercise');
+      document.getElementById('exerciseHistorySection').style.display = '';
+      openExerciseRecord(recordId);
+    }
+
+    // ---------- 数据管理（下载 / 清空 / 注销，后端两步式确认） ----------
+    async function requestConfirmToken(action) {
+      const res = await fetchOrThrow(API_BASE + '/v1/me/confirm-intent', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: USER_ID, action: action })
+      });
+      return (await res.json()).confirm_token;
+    }
+
+    async function exportMyData() {
+      const btn = document.getElementById('meExportBtn');
+      btn.disabled = true;
+      try {
+        const res = await fetchOrThrow(API_BASE + '/v1/me/export?user_id=' + encodeURIComponent(USER_ID));
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'psych-support-export-' + new Date().toISOString().slice(0, 10) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('导出失败：' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function clearMyRecords() {
+      if (!confirm('将删除全部测评、练习与打卡记录（不影响聊天），删除后不可恢复。\n\n确定继续吗？')) return;
+      try {
+        const token = await requestConfirmToken('clear_records');
+        const res = await fetchOrThrow(API_BASE + '/v1/me/records?user_id=' + encodeURIComponent(USER_ID) +
+          '&confirm_token=' + encodeURIComponent(token), { method: 'DELETE' });
+        const data = await res.json();
+        // 本地未同步的打卡/练习缓存一并清掉，避免删除后“复活”
+        saveCheckins([]);
+        localStorage.removeItem(STORE_KEYS.EX_HIST);
+        localStorage.removeItem(STORE_KEYS.EX_DONE);
+        loadExerciseRecords();
+        loadAssessHistory();
+        await loadMePage();
+        const d = data.deleted;
+        alert('已清空：测评 ' + d.assessments + ' 条 / 练习 ' + d.exercise_records + ' 条 / 打卡 ' + d.checkins + ' 条。');
+      } catch (err) {
+        alert('清空失败：' + err.message);
+      }
+    }
+
+    async function deleteMyAccount() {
+      if (!confirm('将删除你的身份与全部数据（含聊天记录），删除后不可恢复。\n\n这是隐私协议承诺的删除权。确定继续吗？')) return;
+      try {
+        const token = await requestConfirmToken('delete_account');
+        await fetchOrThrow(API_BASE + '/v1/me/account?user_id=' + encodeURIComponent(USER_ID) +
+          '&confirm_token=' + encodeURIComponent(token), { method: 'DELETE' });
+        // 全部本地痕迹清掉，刷新后以全新访客身份开始
+        [STORE_KEYS.EX_HIST, STORE_KEYS.EX_DONE, STORE_KEYS.CK, STORE_KEYS.UID, STORE_KEYS.TOKEN, STORE_KEYS.PRIVACY_VER]
+          .forEach(key => localStorage.removeItem(key));
+        location.reload();
+      } catch (err) {
+        alert('注销失败：' + err.message);
       }
     }
 

@@ -332,6 +332,9 @@ _ALLOWED_USAGE_EVENTS = {
     "privacy_policy_ack",
     "exercise_guidance_used",
     "exercise_feedback_served",
+    # 「我」页数据管理（只记动作与逐表行数，无内容）
+    "data_exported",
+    "records_cleared",
 }
 
 

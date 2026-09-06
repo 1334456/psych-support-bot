@@ -14,6 +14,7 @@ from psych_support_bot.api.routes.checkins import router as checkins_router
 from psych_support_bot.api.routes.conversation import router as conversation_router
 from psych_support_bot.api.routes.exercises import router as exercises_router
 from psych_support_bot.api.routes.health import router as health_router
+from psych_support_bot.api.routes.me import router as me_router
 from psych_support_bot.api.routes.plans import router as plans_router
 from psych_support_bot.api.routes.reports import router as reports_router
 from psych_support_bot.api.routes.system import router as system_router
@@ -110,6 +111,7 @@ def create_app() -> FastAPI:
         users_router,
         analytics_router,
         exercises_router,
+        me_router,
     ):
         app.include_router(guarded, dependencies=data_router_guard)
 
