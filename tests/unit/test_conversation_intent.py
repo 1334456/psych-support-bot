@@ -1,4 +1,5 @@
 from psych_support_bot.ai.routers.intent import detect_conversation_intent
+from psych_support_bot.ai.prompts.templates import build_process_state_prompt
 
 
 def test_follow_up_intent() -> None:
@@ -54,3 +55,15 @@ def test_prompt_injection_is_not_follow_up() -> None:
 def test_accident_message_requires_real_history_signal() -> None:
     history = [{"role": "user", "content": "我们刚才在讨论如何面对压力"}]
     assert detect_conversation_intent("换个方向吧，我感觉", history) == "new_request"
+
+
+def test_classifier_result_is_not_injected_as_prompt_instruction() -> None:
+    prompt = build_process_state_prompt(
+        interview_stage="engagement",
+        question_strategy="open",
+        challenge_allowed=False,
+        loop_hint="Start broad.",
+        conversation_intent="follow_up",
+    )
+    assert "Conversation continuity intent" not in prompt
+    assert "Answer the latest follow-up directly" not in prompt
