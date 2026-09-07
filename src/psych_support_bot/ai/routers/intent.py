@@ -185,16 +185,18 @@ def detect_mode(text: str) -> ConversationMode:
 
 
 CONTEXT_REFERENCE_MARKERS = (
-    "this", "that", "it", "still", "why", "continue", "again",
-    "继续", "刚才", "上一条", "还是", "为什么",
+    "continue with that", "continue the", "go on with that", "the previous one",
+    "continue", "again",
+    "继续", "接着说", "刚才", "刚说的那个", "刚说的那个练习",
+    "上一条", "上一个", "还是刚才那个", "仍然", "为什么还是",
 )
 CONSTRAINT_MARKERS = (
     "more formal", "shorter", "正式一点", "简短一点",
     "不能编造", "面向客服", "语气", "要求",
 )
 TOPIC_SWITCH_MARKERS = (
-    "by the way", "another question", "separately", "顺便",
-    "另外", "换个问题", "订单",
+    "another question", "new topic", "change the topic",
+    "换个话题", "换个问题", "另外一个问题",
 )
 
 
@@ -206,6 +208,11 @@ def detect_conversation_intent(
     normalized, compact = _normalize_text(text)
     has_history = bool(recent_history)
 
+    # Without actual history there is nothing reliable to continue. Let the
+    # normal reply path handle the message as a new request.
+    if not has_history:
+        return "new_request"
+
     if any(
         _contains_keyword(normalized, compact, marker)
         for marker in TOPIC_SWITCH_MARKERS
@@ -215,10 +222,10 @@ def detect_conversation_intent(
         _contains_keyword(normalized, compact, marker)
         for marker in CONSTRAINT_MARKERS
     ):
-        return "add_constraint" if has_history else "new_request"
+        return "add_constraint"
     if any(
         _contains_keyword(normalized, compact, marker)
         for marker in CONTEXT_REFERENCE_MARKERS
     ):
-        return "follow_up" if has_history else "clarification_needed"
+        return "follow_up"
     return "new_request"
