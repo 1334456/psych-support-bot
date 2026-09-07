@@ -67,3 +67,11 @@ def test_classifier_result_is_not_injected_as_prompt_instruction() -> None:
     )
     assert "Conversation continuity intent" not in prompt
     assert "Answer the latest follow-up directly" not in prompt
+
+
+def test_bare_continuity_words_are_not_enough() -> None:
+    history = [{"role": "user", "content": "我最近压力很大"}]
+    assert detect_conversation_intent("我还是很难受", history) == "new_request"
+    assert detect_conversation_intent("我想继续聊聊压力", history) == "new_request"
+    assert detect_conversation_intent("这个要求很高", history) == "new_request"
+    assert detect_conversation_intent("我的语气可能有点冲", history) == "new_request"

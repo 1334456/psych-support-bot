@@ -185,14 +185,14 @@ def detect_mode(text: str) -> ConversationMode:
 
 
 CONTEXT_REFERENCE_MARKERS = (
-    "continue with that", "continue the", "go on with that", "the previous one",
-    "continue", "again",
-    "继续", "接着说", "刚才", "刚说的那个", "刚说的那个练习",
-    "上一条", "上一个", "还是刚才那个", "仍然", "为什么还是",
+    "continue with that", "continue with the previous", "go on with that",
+    "follow up on that", "the previous one",
+    "接着说", "继续刚才的", "继续上一个", "刚说的那个", "刚说的那个练习",
+    "上一条", "上一个", "还是刚才那个", "为什么还是",
 )
 CONSTRAINT_MARKERS = (
-    "more formal", "shorter", "正式一点", "简短一点",
-    "不能编造", "面向客服", "语气", "要求",
+    "more formal", "make it formal", "shorter", "正式一点", "改正式一点",
+    "简短一点", "不能编造", "面向客服", "语气正式", "语气简洁",
 )
 TOPIC_SWITCH_MARKERS = (
     "another question", "new topic", "change the topic",
